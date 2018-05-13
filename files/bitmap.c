@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <"bitmap.h">
-#define bytes_dim = 8;
+#include "bitmap.h"
+#define bytes_dim 8
 
 
 // converts a block index to an index in the array,
@@ -25,7 +25,7 @@ BitMapEntryKey BitMap_blockToIndex(int num){
   // returns the index of the first bit having status "status"
   // in the bitmap bmap, and starts looking from position start
   int BitMap_get(BitMap* bmap, int start, int status){
-      if(start > bmap.num_bits) return -1;  //ovviamente, se la partenza è maggiore del numero dei bit, è un po inutile il tutto
+      if(start > bmap->num_bits) return -1;  //ovviamente, se la partenza è maggiore del numero dei bit, è un po inutile il tutto
 
       int i = 0;
       int j = 0;
