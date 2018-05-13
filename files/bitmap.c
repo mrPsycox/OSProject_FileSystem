@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 #include <"bitmap.h">
 #define bytes_dim = 8;
 
