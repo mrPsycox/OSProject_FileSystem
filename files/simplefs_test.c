@@ -5,7 +5,7 @@
 #include <string.h>
 
 int main(int agc, char** argv) {
-  //
+  //DA QUA PARTONO I TEST PER OGNI FUNZIONE BITMAP, IN PIU UTILIZZO LA BITMAP PRINT FATTA DA ME
   int i=0;
   char entries1[8] = "11101000";
   unsigned char block1 = 0;
@@ -24,5 +24,20 @@ int main(int agc, char** argv) {
   bitmap->entries = entries1;
   bitmap->num_bits = 64;
   BitMap_print(bitmap);
+  printf("\n ----------------- BITMAP_TEST: BLOCK_TO_INDEX --------------\n" );
+  int j;
+  for(j=1; j < 20; j++){
+    BitMapEntryKey entry_key = BitMap_blockToIndex(j);
+    printf("block:%d entry:%d index: %d\n" ,j, entry_key.entry_num, entry_key.bit_num);
+  }
+  printf("\n ----------------- BITMAP_TEST: INDEX_TO_BLOCK --------------\n" );
+  for(i = 0; i < 8; i++){
+    for(j = 0; j < 8; j++){
+      printf(" entry:%d + index:%d = BLOCK:%d\n",i,j,BitMap_indexToBlock(i,j));
+    }
+  }
+  printf("\n ----------------- BITMAP_TEST: BITMAP_GET --------------\n" );
+
+
 
 }

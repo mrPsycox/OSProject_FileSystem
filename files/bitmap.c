@@ -33,8 +33,9 @@ BitMapEntryKey BitMap_blockToIndex(int num){
       for(i = start; i < bmap->num_bits; i++){
         BitMapEntryKey new_map = BitMap_blockToIndex(start);          //mi creo la bitmap entry ker partendo dalla posizione start+i
         if(((bmap->entries[new_map.entry_num] >> new_map.bit_num) & 0x01) == status) //faccio shift logico destro mettendo la nuova entry, a condizione che lo status sia disponibile
-            return BitMap_indexToBlock(new_map->entry_num,new_map->bit_num);
+            return BitMap_indexToBlock(new_map.entry_num,new_map.bit_num);
       }
+      printf("Bitmap_Get: No more free blocks!\n");
       return -1;
   }
 
@@ -43,16 +44,21 @@ BitMapEntryKey BitMap_blockToIndex(int num){
     if(pos > bmap->num_bits || pos < 0 || status < 0) return -1;         //faccio i controlli di routine
     BitMapEntryKey new_map = BitMap_blockToIndex(pos);
 
-    unsigned int flag = status;     //Da chiarire...
-    flag = flag << new_map.bit_num;
-    bmap->entries[ new_map->entry_num] = bmap->entries[ new_map->entry_num] | status;  //capita l'assegnazione ma lo "|" non so
-    return 0;   //operazione positiva, ritorno 0 per default
+    unsigned char flag = 1 << new_map.bit_num;                          //mi creo questo flag per riusarlo dopo comtrollo
+    if(status == 1){
+        bmap->entries[new_map.entry_num] = bmap->entries[new_map.entry_num] | flag;
+        return bmap->entries[new_map.entry_num] | flag;               // questa operazione copia un bit se esiste in entrambi gli operandi, stessa cosa che fa prima nell'assegnazione al bitmap dato in input
+    }else{
+        bmap->entries[new_map.entry_num] = bmap->entries[new_map.entry_num] & (~flag);
+        return bmap->entries[new_map.entry_num] & (~flag);           // TILDE_FLAG: ha l'effetto di sfogliare i bit, perciò li comparo uno a uno.
+    }
+    
   }
 
   void BitMap_print(BitMap* bitmap){
     int i = 0;
-    for(i =0; i < bitmap->entry_num; i++){
-      BitMapEntryKey entry = BitMap_indexToBlock(i);                                                      //come in precedenza mi calcolo lo status con lo shift logico destro nella posizione della nuova entry.
-      printf("Entry num ---> %d | bit_num ---> %d | status ---> %d\n",  entry->entry_num,  entry->bit_num,  bitmap->entries[entry->entry_num] >> entry.bit_num & 1);
+    for(i =0; i < bitmap->num_bits; i++){
+      BitMapEntryKey entry = BitMap_blockToIndex(i);                                                      //come in precedenza mi calcolo lo status con lo shift logico destro nella posizione della nuova entry.
+      printf("Entry num ---> %d | bit_num ---> %d | status ---> %d\n",  entry.entry_num,  entry.bit_num,  bitmap->entries[entry.entry_num] >> entry.bit_num & 1);
     }
   }
