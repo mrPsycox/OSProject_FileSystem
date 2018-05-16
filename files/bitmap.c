@@ -27,13 +27,14 @@ BitMapEntryKey BitMap_blockToIndex(int num){
   int BitMap_get(BitMap* bmap, int start, int status){
       if(start > bmap->num_bits) return -1;  //ovviamente, se la partenza è maggiore del numero dei bit, è un po inutile il tutto
 
-      int i = 0;
-      int j = 0;
+      int h = 0;
+      int k = 0;
 
-      for(i = start; i < bmap->num_bits; i++){
+      for(h = start; h < bmap->num_bits; h++){
         BitMapEntryKey new_map = BitMap_blockToIndex(start);          //mi creo la bitmap entry ker partendo dalla posizione start+i
         if(((bmap->entries[new_map.entry_num] >> new_map.bit_num) & 0x01) == status) //faccio shift logico destro mettendo la nuova entry, a condizione che lo status sia disponibile
             return BitMap_indexToBlock(new_map.entry_num,new_map.bit_num);
+        start++;                                            //incremento il la posizione start da cui partire
       }
       printf("Bitmap_Get: No more free blocks!\n");
       return -1;
@@ -52,7 +53,8 @@ BitMapEntryKey BitMap_blockToIndex(int num){
         bmap->entries[new_map.entry_num] = bmap->entries[new_map.entry_num] & (~flag);
         return bmap->entries[new_map.entry_num] & (~flag);           // TILDE_FLAG: ha l'effetto di sfogliare i bit, perciò li comparo uno a uno.
     }
-    
+    return 0;
+
   }
 
   void BitMap_print(BitMap* bitmap){
