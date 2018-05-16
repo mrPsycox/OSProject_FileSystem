@@ -1,5 +1,11 @@
 #include "disk_driver.h"
 #include <stdio.h>
+#include "error.h"
+#include <unistd.h>
+#include "fcntl.h"
+#include "sys/mman.h"
+#include "stdlib.h"
+
 
 // opens the file (creating it if necessary)
 // allocates the necessary space on the disk
@@ -34,23 +40,23 @@ void DiskDriver_init(DiskDriver* disk, const char* filename, int num_blocks){
           close(fd);
           ERROR_HELPER(-1,"Impossible to init: map failed in disk header\n");
       }
-      //metto l'header appena creato dentro l'header che mi passa la funzione
+      //metto l'header appena creato dentro l'il DiskDriver che ho in input
       disk->header = diskheader;
-      disk->bitmap_data = (char*)diskheader + sizeof(DiskHeader);
-
-      printf("Disk free blocks: %d\n",disk->free_blocks );
-      printf("Disk first free block:%d\n",disk->first_free_block );
-      printf("Disk's Bitmap:\n",disk->bitmap_data[0] );    //DA CHIEDERE A SIMONE
+      disk->bitmap_data = (char*)diskheader + sizeof(DiskHeader);     //la bitmap_data invece fa riferimento al ???
 
     }else{  //da qua parte il flusso che prevede che il file non esista
 
         printf("File doesn't exists\n");
 
-        //apro il descrittore e gestisco l'eventuale errore
+        //apro il descrittore e gestisco l'eventuale errore,
+        //stavolta con il flag O_CREAT (creazione) e O_TRUNC(nel caso il file fosse gia
+        //aperto chiudo eventuali connessioni con altri descrittori)
         fd = open(filename,O_RDWR | O_CREAT | O_TRUNC, (mode_t)0666);
         ERROR_HELPER(fd,"Impossible to init: Error when open the file descriptor");
 
         //la posix_fallocate ritorna 0 in caso di successo, un numero maggiore di zero in caso di errore
+        //questa funzione mi assicura che l'allocazione di memoria che dovrò fare per quel descrittore dato in input
+        //avrà sufficientemente spazio
         if(posix_fallocate(fd, 0 , sizeof(DiskHeader) + bitmap_size) > 0){
             printf("Impossible to init: Error in posix_fallocate\n");
             return;
@@ -68,29 +74,29 @@ void DiskDriver_init(DiskDriver* disk, const char* filename, int num_blocks){
         //ora assegno l'header al disco, e poi assegno ogni campo della struct Diskheader con le informazioni ottenute
         disk->header = diskheader;
         disk->bitmap_data = (char*)diskheader + sizeof(DiskHeader);
-
-        diskheader->num_blocks = num_blocks;
-        diskheader->bitmap_blocks = num_blocks;
-        diskheader->bitmap_entries = bitmap_size;
+        //nel caso il file esista quest'operazione non era necessaria, in questo caso si perchè il file che poggia il file system
+        //non ha le informazioni necessarie, naturalmente riempiamo:
+        diskheader->num_blocks = num_blocks;    //dato in input
+        diskheader->bitmap_blocks = num_blocks; //  ""
+        diskheader->bitmap_entries = bitmap_size;// ottenuto prima per conoscere quante entries devo mettere
         diskheader->free_blocks = num_blocks;
         diskheader->first_free_block = 0;
         //ora metto tutti i bit di bitmap data con lunghezza bitmap_size a 0
         bzero(disk->bitmap_data,bitmap_size);
 
-        printf("Disk free blocks: %d\n",disk->free_blocks );
-        printf("Disk first free block:%d\n",disk->first_free_block );
-        printf("Disk's Bitmap:\n",disk->bitmap_data[0] );    //DA CHIEDERE A SIMONE
+
     }
     //la fase piu importante, cioè l'assegnazione al disco del descrittore usato per la creazione del disk header
     disk->fd = fd;
+    printf("Finished the disk_driver initialization\n");
 }
 
 
 // reads the block in position block_num
 // returns -1 if the block is free accrding to the bitmap
 // 0 otherwise
-int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
+/*int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
+    //if(disk == NULL || dest == NULL || block_num < 0)
+    //ERROR_HELPER(NULL,"Disk_Driver_readBlock: Bad parameters");
 
-
-
-}
+}*/

@@ -1,5 +1,6 @@
 #include "simplefs.h"
 #include "bitmap.h"
+#include "disk_driver.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,4 +46,9 @@ int main(int agc, char** argv) {
   BitMap_set(bitmap,2,0);
   printf("GET: get at start[%d],status[%d]: %d, EXPECTED_INDEX[2]\n\n",0,0,BitMap_get(bitmap,0,0));
   BitMap_print(bitmap);
+
+
+  printf("\n ------------------- ENDING BITMAP_TEST ------------------------\n\n" );
+
+  printf("--------------------- STARTING DISK_DRIVER TEST---------------------\n");
 }
