@@ -176,6 +176,7 @@ int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
         bytes_written += ret;
       }
       return 0;
+
   }
 
   // returns the first free blockin the disk from position (checking the bitmap)
