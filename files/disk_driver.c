@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include "fcntl.h"
 #include "sys/mman.h"
+#include <sys/types.h>
 #include "stdlib.h"
 
 
@@ -95,8 +96,41 @@ void DiskDriver_init(DiskDriver* disk, const char* filename, int num_blocks){
 // reads the block in position block_num
 // returns -1 if the block is free accrding to the bitmap
 // 0 otherwise
-/*int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
-    //if(disk == NULL || dest == NULL || block_num < 0)
-    //ERROR_HELPER(NULL,"Disk_Driver_readBlock: Bad parameters");
+int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
+    if(disk == NULL || dest == NULL || block_num < 0)
+    ERROR_HELPER(NULL,"Disk_Driver_readBlock: Bad parameters");
+
+    //mi creo una bitmap con le informazioni ottenute dal DiskDriver in input
+    BitMap bitmap;
+    bitmap.num_bits = disk->header->bitmap_blocks;
+    bitmap.entries = disk->bitmap_data;
+
+    //ora controllo se il blocco che devo leggere leggere è libero
+    if(block_num > disk->header->num_blocks) return -1; //blocco che devo leggere non valido
+    BitMapEntryKey entry = BitMap_blockToIndex(block_num);
+    if(!(bitmap.entries[entry.entry_num] >> entry.bit_num & 0x01)){  //controllo se il bit è occupato (0x01 in decimale == 1), mettendo la condizione contraria so che è libero ;)
+      printf("DiskDriver_readBlock: Free block, nothing to read \n" );
+      return -1;
+    }
+    //controllo che il blocco sia scritto, creo un descrittore per gestire il diskdriver
+    int fd = disk->fd;
+
+    //utilizzo la lseek per posizionare l'indicatore di posizione del file
+    //al preciso punto in cui è posizionato il blocco da leggere, per calcolarmi l'offset sul
+    //descrittore ho bisogno di addizionare sizeof(DiskHeader)+la bitmap_entries+(block_num*BLOCK_SIZE)
+    off_t offset = lseek(fd,sizeof(DiskHeader)+disk->header->bitmap_entries+(block_num*BLOCK_SIZE),SEEK_SET);
+  }
+
+
+
+
+
+
+
+
+
+
+
+
 
 }*/
