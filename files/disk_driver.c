@@ -119,18 +119,76 @@ int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
     //al preciso punto in cui è posizionato il blocco da leggere, per calcolarmi l'offset sul
     //descrittore ho bisogno di addizionare sizeof(DiskHeader)+la bitmap_entries+(block_num*BLOCK_SIZE)
     off_t offset = lseek(fd,sizeof(DiskHeader)+disk->header->bitmap_entries+(block_num*BLOCK_SIZE),SEEK_SET);
+    if(offset == -1){  //gestisco il caso negativo
+      ERROR_HELPER(-1,"DiskDriver_readBlock: lseek don't return a valid offset");
+    }
+    //ora faccio la lettura usando la primitiva read(), usando lo schema del buffer circolare
+    int bytes_read=0, ret;  //mi preparo due variabili per controllare quanti byte ho letto
+    while( bytes_read < BLOCK_SIZE){
+      ret = read(fd, dest + bytes_read , BLOCK_SIZE - bytes_read);
+      if(ret == -1 && errno == EINTR) continue;       //DA ANALIZZARE
+      else if(ret == -1 && errno != EINTR) return -1; //DA ANALIZZARE
+      bytes_read += ret;
+    }
+    return 0;     //ho gestito gli errori, ritorno 0 perchè la lettura è avvenuta con successo
   }
 
+  // writes a block in position block_num, and alters the bitmap accordingly
+  // returns -1 if operation not possible
+  int DiskDriver_writeBlock(DiskDriver* disk, void* src, int block_num){
+      if(disk == NULL || src == NULL || block_num < 0)
+      ERROR_HELPER(-1,"DiskDriver_writeBlock: Bad parameters in input");
 
+      //mi creo la bitmap come in precedenza
+      BitMap bitmap;
+      bitmap.num_bits = disk->header->bitmap_blocks;
+      bitmap.entries = disk->bitmap_data;
 
+      //controllo se il blocco è libero
+      if(block_num > disk->header->num_blocks) return -1;     //controllo di base
+      BitMapEntryKey entry = BitMap_blockToIndex(block_num);
+      if((bitmap.entries[entry.entry_num] >> entry.bit_num & 1)){
+        return -1;   //ritorno -1 se il blocco è già scritto, cioè non faccio nulla
+      }
+      //sapendo che il blocco su cui sto per scrivere è libero, devo aggiornare la bitmap sul primo blocco dispondibile
+      if(block_num == disk->header->first_free_block)
+        disk->header->first_free_block = DiskDriver_getFreeBlock(disk,block_num+1);
 
+      //ora devo decrescere nella bitmap il numero di blocchi liberi, dato che ne sto scrivendo uno
+      //inoltre setto lo status a 1 del Bitmap corrispondente
+      BitMap_set(&bitmap,block_num,1);
+      disk->header->free_blocks - 1;
 
+      //ora mi prendo il descrittore
+      int fd = disk->fd;
+      //uso la lseek per posizionare l'indice di scrittura al blocco corrispondente
+      off_t off = lseek(fd, sizeof(DiskHeader) + disk->header->bitmap_entries + (block_num * BLOCK_SIZE), SEEK_SET);
+      if(off == -1){
+        printf("DiskDriver_writeBlock: error setting the index to write the block (lseek)\n");
+        return -1;
+      }
+      // ora vado a scrivere il file
+      int bytes_written, ret;
+      while( bytes_written < BLOCK_SIZE){
+        ret = write(fd, src + bytes_written, BLOCK_SIZE - bytes_written);
+        if(ret == -1 && errno == EINTR) continue;
+        else if(ret == -1 && errno == EINTR) return -1;
+        bytes_written += ret;
+      }
+      return 0;
+  }
 
+  // returns the first free blockin the disk from position (checking the bitmap)
+  int DiskDriver_getFreeBlock(DiskDriver* disk, int start){
+    if(disk == NULL || start < 0)
+    ERROR_HELPER(-1,"DiskDriver_getFreeBlock: Bad parameters in input");
 
+    //mi creo la bitmap
+    BitMap bitmap;
+    bitmap.num_bits = disk->header->bitmap_blocks;
+    bitmap.entries = disk->bitmap_data;
 
-
-
-
-
-
-}*/
+    //utilizzo la BitMap_get per prendermi il primo blocco con status 0
+    return BitMap_get(&bitmap,start,0);     //dato che la bitmap get prende un puntatore a bitmap,
+                                            //gli passo il suo indirizzo logico
+  }
