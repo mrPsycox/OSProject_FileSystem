@@ -133,18 +133,14 @@ int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
     return 0;     //ho gestito gli errori, ritorno 0 perchè la lettura è avvenuta con successo
   }
 
-<<<<<<< HEAD
-=======
 
->>>>>>> 872be36213f27807aed516c50f06f1bbd85f6360
   // returns the first free blockin the disk from position (checking the bitmap)
   int DiskDriver_getFreeBlock(DiskDriver* disk, int start){
     if(disk == NULL || start < 0)
     ERROR_HELPER(-1,"DiskDriver_getFreeBlock: Bad parameters in input");
-<<<<<<< HEAD
-=======
 
->>>>>>> 872be36213f27807aed516c50f06f1bbd85f6360
+
+
     //mi creo la bitmap
     BitMap bitmap;
     bitmap.num_bits = disk->header->bitmap_blocks;
