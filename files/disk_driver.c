@@ -133,6 +133,22 @@ int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
     return 0;     //ho gestito gli errori, ritorno 0 perchè la lettura è avvenuta con successo
   }
 
+
+  // returns the first free blockin the disk from position (checking the bitmap)
+  int DiskDriver_getFreeBlock(DiskDriver* disk, int start){
+    if(disk == NULL || start < 0)
+    ERROR_HELPER(-1,"DiskDriver_getFreeBlock: Bad parameters in input");
+
+    //mi creo la bitmap
+    BitMap bitmap;
+    bitmap.num_bits = disk->header->bitmap_blocks;
+    bitmap.entries = disk->bitmap_data;
+
+    //utilizzo la BitMap_get per prendermi il primo blocco con status 0
+    return BitMap_get(&bitmap,start,0);     //dato che la bitmap get prende un puntatore a bitmap,
+                                            //gli passo il suo indirizzo logico
+  }
+
   // writes a block in position block_num, and alters the bitmap accordingly
   // returns -1 if operation not possible
   int DiskDriver_writeBlock(DiskDriver* disk, void* src, int block_num){
@@ -176,20 +192,4 @@ int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
         bytes_written += ret;
       }
       return 0;
-
-  }
-
-  // returns the first free blockin the disk from position (checking the bitmap)
-  int DiskDriver_getFreeBlock(DiskDriver* disk, int start){
-    if(disk == NULL || start < 0)
-    ERROR_HELPER(-1,"DiskDriver_getFreeBlock: Bad parameters in input");
-
-    //mi creo la bitmap
-    BitMap bitmap;
-    bitmap.num_bits = disk->header->bitmap_blocks;
-    bitmap.entries = disk->bitmap_data;
-
-    //utilizzo la BitMap_get per prendermi il primo blocco con status 0
-    return BitMap_get(&bitmap,start,0);     //dato che la bitmap get prende un puntatore a bitmap,
-                                            //gli passo il suo indirizzo logico
   }
