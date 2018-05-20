@@ -195,3 +195,34 @@ int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
       }
       return 0;
   }
+  
+	// frees a block in position block_num, and alters the bitmap accordingly
+	// returns -1 if operation not possible
+int DiskDriver_freeBlock(DiskDriver* disk, int block_num){
+	if(disk == NULL || block_num < 0)
+	ERROR_HELPER(-1,"DiskDriver_freeBlock: Bad parameters in input");
+	
+	//setto il bitmap come ogni volta
+	BitMap bitmap;
+	bitmap->num_bits = disk->header->bitmap_blocks;
+	bitmap->entries = disk->bitmap_data;
+	
+	//controllo come al solito se il blocco è gia libero
+	if(block_num > disk->header->num_blocks)
+	ERROR_HELPER(-1,"DiskDriver_freeBlock: the block doesn't exist");
+	
+	BitMapEntryKey entry = BitMap_blockToIndex(block_num);
+	if(bitmap.entries[entry.entry_num] >> entry.entry_num & 1){	//controllo se il blocco è occupato con lo shift 
+		return -1;														//logico destro
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+}
