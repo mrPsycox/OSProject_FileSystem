@@ -119,7 +119,7 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 			}
 			int i;
 			for(i = 0; i < max_req_space_db; i++){
-					if((db.file_blocks[i] > 0 && DiskDriver_readBlock(disk, &ffb, db.file_blocks[i]) != -1){
+					if((db.file_blocks[i] > 0 && DiskDriver_readBlock(disk, &ffb, db.file_blocks[i]) != -1)){
 						if(strcmp(fdb->fcb.name,filename) == 0){
 							printf("SimpleFS_createFile: file already exists :(\n");
 							return NULL;
@@ -131,5 +131,12 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 	}
 	//arrivato a questo punto , vuol dire che il file non esiste già e passiamo alla sua
 	// CREAZIONE!!
+	// prendiamo il primo blocco libero
+	int new_freeblock = DiskDriver_getFreeBlock(disk,disk->header->first_free_block);
+	if(new_freeblock == -1){
+		printf("SimpleFS_createFile: cannot have a new free block from the disk :(\n");
+		return NULL;
+	}
+	FirstFileBlock* newfile_created = calloc(1,sizeof(FirstFileBlock));
 	
 }

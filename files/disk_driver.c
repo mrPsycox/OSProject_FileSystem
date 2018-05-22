@@ -6,6 +6,7 @@
 #include "sys/mman.h"
 #include <sys/types.h>
 #include "stdlib.h"
+#include "bitmap.h"
 
 
 // opens the file (creating it if necessary)
@@ -204,25 +205,61 @@ int DiskDriver_freeBlock(DiskDriver* disk, int block_num){
 	
 	//setto il bitmap come ogni volta
 	BitMap bitmap;
-	bitmap->num_bits = disk->header->bitmap_blocks;
-	bitmap->entries = disk->bitmap_data;
+	bitmap.num_bits = disk->header->bitmap_blocks;
+	bitmap.entries = disk->bitmap_data;
 	
 	//controllo come al solito se il blocco è gia libero
 	if(block_num > disk->header->num_blocks)
 	ERROR_HELPER(-1,"DiskDriver_freeBlock: the block doesn't exist");
 	
 	BitMapEntryKey entry = BitMap_blockToIndex(block_num);
-	if(bitmap.entries[entry.entry_num] >> entry.entry_num & 1){	//controllo se il blocco è occupato con lo shift 
+	if(!(bitmap.entries[entry.entry_num] >> entry.entry_num & 1)){	//controllo se il blocco è occupato con lo shift 
 		return -1;														//logico destro
 	}
+	//ora mi assegno il descrittore per cominciare le operazioni di liberazione
+	int fd = disk->fd;
+	//posiziono il cursore lseek sul file per la scrittura
+	off_t offset = lseek(fd , sizeof(DiskDriver*) + disk->header->bitmap_entries+ (BLOCK_SIZE * block_num),SEEK_SET);
+	if(offset == -1){
+		printf("DiskDriver_freeBlock: lseek cannot put the cursor on the file\n");
+		return -1;
+	}
+	//ora metto tutto a 0 il blocco;
+	char zero_buf[BLOCK_SIZE] = {0};
+	int ret,bytes_written;
+	while( bytes_written < BLOCK_SIZE){
+		ret = write(fd,zero_buf + bytes_written, BLOCK_SIZE - bytes_written);
+		
+		if(ret == -1 && errno == EINTR) continue;
+		
+		bytes_written += ret;
+	}
 	
+	int ret2;
+	ret2 = BitMap_set(&bitmap , block_num, 0);
+	if(ret2 == -1){
+		printf("Disk_Driver_freeBlock: cannot set the bitmap on block_num\n");
+		return -1;
+	}
+	//ora mi rimane da aggiornare il primo blocco libero e aumentare di 1 il contatore dei blocchi
+	if(block_num < disk->header->first_free_block || disk->header->first_free_block == -1){
+		disk->header->first_free_block = block_num;
+		disk->header->free_blocks++;
+	}
+	//operazione completata, ritorno 0 in caso di successo
+	return 0;
 	
-	
-	
-	
-	
-	
-	
-	
-	
+}
+
+// writes the data (flushing the mmaps)
+// completo le precedenti operazioni e faccio update del file
+int DiskDriver_flush(DiskDriver* disk){
+	printf("Disk_Driver_Flush : flush started\n");
+	int bitmap_size = disk->header->num_blocks/8+1;
+	int ret = msync(disk->header, sizeof(DiskHeader)+bitmap_size, MS_SYNC);								
+		if (ret==-1){
+    	printf(" ERROR!!!! Could not sync the file to disk\n");
+    }
+    printf("Disk_Driver_Flush : flush end\n");
+	return 0;
 }
