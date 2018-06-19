@@ -196,10 +196,10 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 				int* blocks = fdb->file_blocks;		//cerco nello stesso modo di prima
 				block_number = next_block;
 				blockinFile++;
-				for(int i = 0; i < max_free_space_db;i++){
+				for(int i = 0; i < max_req_space_db;i++){
 					if(blocks[i] == 0){
-						found = 1;
-						entry = i;
+						block_found = 1;
+						block_entry = i;
 						break;
 					}
 				}
@@ -207,7 +207,7 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 				next_block = last_db.header.next_block;
 			} 
 		}
-		if(!found){ //in caso non ci sia piu spazio
+		if(!block_found){ //in caso non ci sia piu spazio
 			//devo allocare un un nuovo directory block e popolare il suo header
 			DirectoryBlock new_db = {0};
 			new_db.header.next_block = -1;
@@ -215,7 +215,7 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 			new_db.header.previous_block = block_number;
 			new_db.file_blocks[0] = new_freeblock;
 			
-			int new_dir_block = DiskDriver_freeBlock(disk,fdb->header.first_free_block); //ora mi trovo il blocco necessario libero
+			int new_dir_block = DiskDriver_freeBlock(disk,disk->header->first_free_block); //ora mi trovo il blocco necessario libero
 			if(new_dir_block == -1){
 				printf("SimpleFS_CreateFile: impossibile to create file\n");
 				DiskDriver_freeBlock(disk,fdb->fcb.block_in_disk);
@@ -233,7 +233,7 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 			if(file_saved_on_fdb_or_db == 0 ){		//ora controllo se il blocco l'ho posizionato nel
 					fdb->header.next_block = new_dir_block;//fdb o nel db, a seconda di cio altero 
 			}else{									// la posizione del next block
-				last_db->header.next_block = new_dir_block;
+				last_db.header.next_block = new_dir_block;
 			}
 			last_db = new_db;			//aggiorno il directory block al nuovo directory block
 			block_number = new_dir_block;
@@ -242,12 +242,12 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 		if(not_spacein_firstdirectoryblock == 0){ //il file è in fdb
 			fdb->num_entries++;
 			fdb->file_blocks[block_entry] = new_freeblock;
-			DiskDriver_freeBlock(disk,fdb->header.block_in_disk);
-			DiskDriver_writeBlock(disk, fdb, fdb->header.block_in_disk);
+			DiskDriver_freeBlock(disk,fdb->fcb.block_in_disk);
+			DiskDriver_writeBlock(disk, fdb, fdb->fcb.block_in_disk);
 		}else{//il file è nei directory blocks
 			fdb->num_entries++;
-			DiskDriver_freeBlock(disk,fdb->header.block_in_disk);
-			DiskDriver_writeBlock(disk,fdb,fdb->header.block_in_disk);
+			DiskDriver_freeBlock(disk,fdb->fcb.block_in_disk);
+			DiskDriver_writeBlock(disk,fdb,fdb->fcb.block_in_disk);
 			last_db.file_blocks[block_entry] = new_freeblock;
 			DiskDriver_freeBlock(disk,block_number);
 			DiskDriver_writeBlock(disk,&last_db,block_number);
@@ -263,6 +263,11 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 		
 	
 }
+
+
+int SimpleFS_readDir(char** names, DirectoryHandle* d){
+	
+	}
 
 
 
