@@ -215,14 +215,52 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 			new_db.header.previous_block = block_number;
 			new_db.file_blocks[0] = new_freeblock;
 			
-			int new_dir_block = DiskDriver_freeBlock(disk,fdb->header.first_free_block);
-			if(new_freeblock == -1){
-				printf("SimpleFS_CreateFile: impossibile to create file");
+			int new_dir_block = DiskDriver_freeBlock(disk,fdb->header.first_free_block); //ora mi trovo il blocco necessario libero
+			if(new_dir_block == -1){
+				printf("SimpleFS_CreateFile: impossibile to create file\n");
 				DiskDriver_freeBlock(disk,fdb->fcb.block_in_disk);
 				return NULL;
 			}
 			
+			int ret;
+			ret = DiskDriver_writeBlock(disk, &new_db, new_dir_block); //scrivo sul blocco
+			if(ret == -1){
+				printf("SimpleFS_createFile: error writing in a block\n");
+				DiskDriver_freeBlock(disk,fdb->fcb.block_in_disk);
+				return NULL;
+			}
+			
+			if(file_saved_on_fdb_or_db == 0 ){		//ora controllo se il blocco l'ho posizionato nel
+					fdb->header.next_block = new_dir_block;//fdb o nel db, a seconda di cio altero 
+			}else{									// la posizione del next block
+				last_db->header.next_block = new_dir_block;
+			}
+			last_db = new_db;			//aggiorno il directory block al nuovo directory block
+			block_number = new_dir_block;
 		}
+		
+		if(not_spacein_firstdirectoryblock == 0){ //il file è in fdb
+			fdb->num_entries++;
+			fdb->file_blocks[block_entry] = new_freeblock;
+			DiskDriver_freeBlock(disk,fdb->header.block_in_disk);
+			DiskDriver_writeBlock(disk, fdb, fdb->header.block_in_disk);
+		}else{//il file è nei directory blocks
+			fdb->num_entries++;
+			DiskDriver_freeBlock(disk,fdb->header.block_in_disk);
+			DiskDriver_writeBlock(disk,fdb,fdb->header.block_in_disk);
+			last_db.file_blocks[block_entry] = new_freeblock;
+			DiskDriver_freeBlock(disk,block_number);
+			DiskDriver_writeBlock(disk,&last_db,block_number);
+		}
+		
+		FileHandle* file_h = malloc(sizeof(FileHandle));
+		file_h->sfs = d->sfs;
+		file_h->fcb = newfile_created;
+		file_h->directory = fdb;
+		file_h->pos_in_file = 0;
+		
+		return file_h;
+		
 	
 }
 
