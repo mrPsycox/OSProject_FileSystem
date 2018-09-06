@@ -292,7 +292,7 @@ int SimpleFS_readDir(char** names, DirectoryHandle* d){
 			}
 
 			if(fdb->num_entries > i){
-				int next = fdb.header.next_block;
+				int next = fdb->header.next_block;
 				DirectoryBlock db;
 					while (next != -1) {
 						ret = DiskDriver_readBlock(disk,&db,next);
@@ -300,11 +300,11 @@ int SimpleFS_readDir(char** names, DirectoryHandle* d){
 							printf("Cannot read the next block: SimpleFS_read\n");
 							return -1;
 						}
-						int* blocks = db->file_blocks;
+						int* blocks = db.file_blocks;
 						for(i = 0; i< max_free_space_db; i++){
 							if(blocks[i]>0 && DiskDriver_readBlock(disk,&to_check,blocks[i]) != -1){
-								        names[num_tot] = strndup(to_check.fcb.name, 128); // come sopra
-                        num_tot++;
+								        names[total_blocks] = strndup(to_check.fcb.name, 128); // come sopra
+                        total_blocks++;
 							}
 						}
 						next = db.header.next_block; // va al prossimo directory block
@@ -336,7 +336,7 @@ FileHandle* SimpleFS_openFile(DirectoryHandle* d, const char* filename){
 			FirstFileBlock* check = malloc(sizeof(FirstFileBlock));
 			int i,final;
 			for(i = 0; i < max_free_space_fdb; i++){
-				if(fdb->file_blocks[i] > 0 && (DiskDriver_readBlock(disk,&to_check,fdb->file_blocks[i]) != -1)){
+				if(fdb->file_blocks[i] > 0 && (DiskDriver_readBlock(disk,&check,fdb->file_blocks[i]) != -1)){
 					if(strncmp(check->fcb.name,filename,128) == 0){
 						found = 1;
 						final = i;
@@ -353,7 +353,7 @@ FileHandle* SimpleFS_openFile(DirectoryHandle* d, const char* filename){
 				ret = DiskDriver_readBlock(disk,&db,next);
 				if(ret == -1){
 						printf("Cannot read the next block: SimpleFS_openFile\n");
-						return -1;
+						return NULL;
 				}
 				for(i = 0; i < max_free_space_db; i++){
 					if(db.file_blocks[i]>0 && (DiskDriver_readBlock(disk,check,db.file_blocks[i]) != -1 )){
@@ -433,7 +433,7 @@ int SimpleFS_write(FileHandle* f, void* data, int size){
 
 					next_block = DiskDriver_getFreeBlock(f->sfs->disk,block_in_disk); //dopo come start il blocco presente del disco
 					if(one_block == 1){
-						ffb.header.next_block = next_block;
+						ffb->header.next_block = next_block;
 						//aggiorno le informazioni sul disco
 						DiskDriver_freeBlock(f->sfs->disk,ffb->fcb.block_in_disk);
 						DiskDriver_writeBlock(f->sfs->disk,ffb,ffb->fcb.block_in_disk);
@@ -441,8 +441,8 @@ int SimpleFS_write(FileHandle* f, void* data, int size){
 					}else{
 						tmp_fb.header.next_block = next_block; //
 							//aggiorno le informazioni su disco
-							DiskDriver_freeBlock(f->sfs->disk,ffb.fcb.block_in_disk);
-							DiskDriver_writeBlock(s->sfs->disk,&tmp_fb,ffb->fcb.block_in_disk);
+							DiskDriver_freeBlock(f->sfs->disk,ffb->fcb.block_in_disk);
+							DiskDriver_writeBlock(f->sfs->disk,&tmp_fb,ffb->fcb.block_in_disk);
 					}
 					DiskDriver_writeBlock(f->sfs->disk,&n_fb,next_block);
 
@@ -455,7 +455,7 @@ int SimpleFS_write(FileHandle* f, void* data, int size){
 						memcpy(tmp_fb.data+off,(char*)data,max_free_space_fb-off);
 						bytes_written += to_write;
 						if(f->pos_in_file+bytes_written > ffb->fcb.written_bytes)
-							ffb->fcb.written_bytes = f->pos_in_file+written_bytes;
+							ffb->fcb.written_bytes = f->pos_in_file+bytes_written;
 
 						DiskDriver_freeBlock(f->sfs->disk,ffb->fcb.block_in_disk);
 					  DiskDriver_writeBlock(f->sfs->disk, ffb, ffb->fcb.block_in_disk);
