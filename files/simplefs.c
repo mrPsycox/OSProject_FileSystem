@@ -387,5 +387,95 @@ FileHandle* SimpleFS_openFile(DirectoryHandle* d, const char* filename){
 // overwriting and allocating new space if necessary
 // returns the number of bytes written
 int SimpleFS_write(FileHandle* f, void* data, int size){
-	
-}
+	FirstFileBlock* ffb = f->fcb;
+	//preparo allo scrittura del file
+	int off = f->pos_in_file;
+	int to_write = size;
+	int bytes_written = 0;
+	int max_free_space_ffb = BLOCK_SIZE - sizeof(FileControlBlock) - sizeof(BlockHeader);
+  int max_free_space_fb = BLOCK_SIZE - sizeof(BlockHeader);
+
+	if(off < max_free_space_ffb && to_write <=  max_free_space_ffb-off){  //se lo spazio necessario è minore delo spaazio disponibile
+		memcpy(ffb->data + off, (char*)data, max_free_space_ffb-off);  //(dest,source(castato a char*),size necessario)
+		bytes_written += to_write;
+
+		if(f->pos_in_file+bytes_written > ffb->fcb.written_bytes)
+			ffb->fcb.written_bytes = f->pos_in_file+bytes_written;
+        // update the block
+    DiskDriver_freeBlock(f->sfs->disk,ffb->fcb.block_in_disk);
+    DiskDriver_writeBlock(f->sfs->disk, ffb, ffb->fcb.block_in_disk);
+		return bytes_written;
+		}
+		else if(off < max_free_space_ffb && to_write >  max_free_space_ffb-off){ //se i byte da scrivere sono maggiorni dei byte disponibili
+			memcpy(ffb->data+off, (char*)data, max_free_space_fb-off);
+			bytes_written += max_free_space_ffb-off;
+			to_write = size - bytes_written;
+			DiskDriver_freeBlock(f->sfs->disk,ffb->fcb.block_in_disk);
+		 	DiskDriver_writeBlock(f->sfs->disk, ffb, ffb->fcb.block_in_disk);
+			off = 0;
+		}else
+			off -= max_free_space_ffb;
+
+		int block_in_disk = ffb->fcb.block_in_disk;
+		int next_block = ffb->header.next_block;
+		int block_in_file = ffb->header.block_in_file;
+		FileBlock tmp_fb;
+		int one_block = 0;
+		if(next_block == -1)
+			one_block = 1;
+
+			while (bytes_written < size) {
+				if(next_block == -1){ //se non ci sono piu blocchi ne creiamo uno nuovo
+					FileBlock n_fb = {0};
+					n_fb.header.block_in_file = block_in_file + 1;
+					n_fb.header.next_block = -1;
+					n_fb.header.previous_block = block_in_disk;
+
+					next_block = DiskDriver_getFreeBlock(f->sfs->disk,block_in_disk); //dopo come start il blocco presente del disco
+					if(one_block == 1){
+						ffb.header.next_block = next_block;
+						//aggiorno le informazioni sul disco
+						DiskDriver_freeBlock(f->sfs->disk,ffb->fcb.block_in_disk);
+						DiskDriver_writeBlock(f->sfs->disk,ffb,ffb->fcb.block_in_disk);
+						one_block = 0;
+					}else{
+						tmp_fb.header.next_block = next_block; //
+							//aggiorno le informazioni su disco
+							DiskDriver_freeBlock(f->sfs->disk,ffb.fcb.block_in_disk);
+							DiskDriver_writeBlock(s->sfs->disk,&tmp_fb,ffb->fcb.block_in_disk);
+					}
+					DiskDriver_writeBlock(f->sfs->disk,&n_fb,next_block);
+
+					tmp_fb = n_fb;
+				}
+				else
+					if(DiskDriver_readBlock(f->sfs->disk,&tmp_fb,next_block) == -1) return -1;
+
+					if(off < max_free_space_fb && to_write <= max_free_space_fb - off){
+						memcpy(tmp_fb.data+off,(char*)data,max_free_space_fb-off);
+						bytes_written += to_write;
+						if(f->pos_in_file+bytes_written > ffb->fcb.written_bytes)
+							ffb->fcb.written_bytes = f->pos_in_file+written_bytes;
+
+						DiskDriver_freeBlock(f->sfs->disk,ffb->fcb.block_in_disk);
+					  DiskDriver_writeBlock(f->sfs->disk, ffb, ffb->fcb.block_in_disk);
+						DiskDriver_freeBlock(f->sfs->disk,ffb->fcb.block_in_disk);
+						DiskDriver_writeBlock(f->sfs->disk,&tmp_fb,next_block);
+						return bytes_written;
+					}else if(off < max_free_space_fb && to_write >  max_free_space_fb-off){
+							memcpy(tmp_fb.data+off,(char*)data+bytes_written,max_free_space_fb-off);
+							bytes_written += max_free_space_fb - off;
+							to_write = size - bytes_written;
+							DiskDriver_freeBlock(f->sfs->disk,ffb->fcb.block_in_disk);
+							DiskDriver_writeBlock(f->sfs->disk,&tmp_fb,next_block);
+							off = 0;
+					}else
+						off -= max_free_space_fb;
+
+
+						block_in_disk = next_block;	// update index of current_block
+						next_block = tmp_fb.header.next_block;
+						block_in_file = tmp_fb.header.block_in_file; // update index of next_block
+				}
+				return bytes_written;
+			}
