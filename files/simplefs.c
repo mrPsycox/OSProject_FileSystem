@@ -479,3 +479,160 @@ int SimpleFS_write(FileHandle* f, void* data, int size){
 				}
 				return bytes_written;
 			}
+
+			// writes in the file, at current position size bytes stored in data
+			// overwriting and allocating new space if necessary
+			// returns the number of bytes read
+int SimpleFS_read(FileHandle* f, void* data, int size){
+	FirstFileBlock* ffb = f->fcb;
+	int off = f->pos_in_file;
+	int bytes_written = ffb->fcb.written_bytes;
+
+	if(size + off > bytes_written){		//size non valido
+		printf("INVALIDE SIZE: SimpleFS_read\n");
+		bzero(data,size);
+		return -1;
+		}
+
+		int bytes_read = 0;
+		int to_read = size;
+		int max_free_space_ffb = BLOCK_SIZE - sizeof(FileControlBlock) - sizeof(BlockHeader);
+    int max_free_space_fb = BLOCK_SIZE - sizeof(BlockHeader);
+
+		if(off < max_free_space_ffb && to_read <= max_free_space_ffb){
+			memcpy(data,ffb->data + off, to_read); //leggo il blocco
+			bytes_read += to_read;
+			to_read = size - bytes_read;
+			f->pos_in_file += bytes_read;
+			return bytes_read;
+		}
+		else if(off < max_free_space_ffb && to_read > max_free_space_ffb){
+				memcpy(data,ffb->data + off, to_read);
+				bytes_read += max_free_space_ffb - off;
+				to_read = size - bytes_read;
+				off = 0;
+		}
+		else off -= max_free_space_ffb;
+
+		int next_block = ffb->header.next_block;
+		FileBlock tmp;
+
+		while (bytes_read < size && next_block != -1){
+			if(DiskDriver_readBlock(f->sfs->disk,&tmp,next_block) == -1) return -1;
+
+			if(off < max_free_space_fb && to_read <= max_free_space_fb - off){
+					memcpy(data + bytes_read,tmp.data + off, to_read);
+					bytes_read += to_read;
+					to_read = size - bytes_read;
+					f->pos_in_file = bytes_read;
+					return bytes_read;
+			}
+			else if(off < max_free_space_fb && to_read > max_free_space_fb - off){
+				memcpy(data + bytes_read, tmp.data + off, to_read);
+				bytes_read += max_free_space_fb - off;
+				to_read = size - bytes_read;
+				off = 0;
+			}
+			else off -= max_free_space_fb;
+
+			next_block = tmp.header.next_block;
+		}
+		return bytes_read;
+}
+
+// returns the number of bytes read (moving the current pointer to pos)
+// returns pos on success
+// -1 on error (file too short)
+int SimpleFS_seek(FileHandle* f, int pos){
+	FirstFileBlock* ffb = f->fcb;
+	if(pos > ffb->fcb.written_bytes){ //la posizione in input non è valida perchè maggiore
+		printf("Position too small: SimpleFS_seek\n");
+		return -1;
+	}
+	f->pos_in_file = pos;
+	return pos;
+}
+
+// seeks for a directory in d. If dirname is equal to ".." it goes one level up
+// 0 on success, negative value on error
+// it does side effect on the provided handle
+ int SimpleFS_changeDir(DirectoryHandle* d, char* dirname){
+	 	if(d == NULL || dirname == NULL){
+			printf("Bad Parameters on input: SimpleFS_changeDir\n");
+			return -1;
+		}
+
+		int max_free_space_fdb = (BLOCK_SIZE - sizeof(BlockHeader) - sizeof(FileControlBlock) - sizeof(int))/sizeof(int);
+	 	int max_free_space_db = (BLOCK_SIZE - sizeof(BlockHeader))/sizeof(int);
+		int ret = 0;
+		int i= 0 ;
+
+		if(strncmp(dirname,"..",2) == 0){	//torno alla directory superiore
+			if(d->dcb->fcb.block_in_disk == 0){ //qua mi controllo se sono la root
+				printf("Impossible to read parent directory. Is a root directory\n");
+				return -1;
+			}
+			d->pos_in_block = 0;
+			d->dcb = d->directory;
+
+			int parent_block = d->dcb->fcb.directory_block;
+			if(parent_block == -1){
+				d->directory = NULL;
+				return 0;
+			}
+			FirstDirectoryBlock* parent = malloc(sizeof(FirstDirectoryBlock));
+			ret = DiskDriver_readBlock(d->sfs->disk,parent,parent_block);
+			if(ret == -1){
+				printf("Impossible to read parent directory during go level up ('cd ..')\n");
+				d->directory = NULL; // problems to read, handle will nor have the parent
+			}else{
+				d->directory = parent;
+			}
+			return 0;
+		}
+		else if(d->dcb->num_entries < 0){ //directory vuota
+			printf("Impossible to change directory, this directory is empty\n");
+			return -1;
+		}
+
+		//ora non devo andare al top level ne la directory è vuota
+		FirstDirectoryBlock* fdb = d->dcb;
+		DiskDriver* disk = d->sfs->disk;
+
+		FirstDirectoryBlock* to_check = malloc(sizeof(to_check));
+
+		for(i = 0; i < max_free_space_fdb; i++){
+			if(fdb->file_blocks[i] > 0 && (DiskDriver_readBlock(disk,to_check,fdb->file_blocks[i])) != -1){
+				if(strncmp(to_check->fcb.name,dirname,128) == 0){
+					DiskDriver_readBlock(disk,to_check,fdb->file_blocks[i]);
+					d->pos_in_block = 0; //resetto la directory
+					d->directory = fdb;
+					d->dcb = to_check;
+					return 0;
+				}
+			}
+		}
+		int next_block = fdb->header.next_block;
+		DirectoryBlock db;
+		while(next_block != -1){
+			ret = DiskDriver_readBlock(disk,to_check,next_block);
+			if(ret == -1){
+				printf("cannot read the block: SimpleFS_changeDir\n");
+				return -1;
+			}
+			for(i = 0; i < max_free_space_db; i++){
+				if(db.file_blocks[i] > 0 && (DiskDriver_readBlock(disk,&to_check,db.file_blocks[i])) != -1){
+					if(strncmp(to_check->fcb.name,dirname,128) == 0){
+						Disk_Driver_readBlock(disk,to_check,db.file_blocks[i]);
+						d->pos_in_block = 0;
+						d->directory = fdb;
+						d->dcb = to_check;
+						return 0;
+					}
+				}
+			}
+			next_block = db.header.next_block;
+		}
+		printf("cannot change directory\n");
+		return -1;
+ }
