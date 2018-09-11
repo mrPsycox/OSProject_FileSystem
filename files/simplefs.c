@@ -636,3 +636,11 @@ int SimpleFS_seek(FileHandle* f, int pos){
 		printf("cannot change directory\n");
 		return -1;
  }
+
+
+ // creates a new directory in the current one (stored in fs->current_directory_block)
+ // 0 on success
+ // -1 on error
+ int SimpleFS_mkDir(DirectoryHandle* d, char* dirname){
+	 
+ }
