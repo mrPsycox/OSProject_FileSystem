@@ -796,3 +796,132 @@ int SimpleFS_seek(FileHandle* f, int pos){
 		}
 		return 0;
  }
+
+ // removes the file in the current directory
+ // returns -1 on failure 0 on success
+ // if a directory, it removes recursively all contained files
+ int SimpleFS_remove(DirectoryHandle* d, char* filename){
+	 if(d = NULL || filename == NULL){
+		 printf("Bad parameters: SimpleFS_remove\n");
+		 return -1;
+	 }
+	 DiskDriver* disk = d->sfs->disk;
+
+	 int max_free_space_fdb = (BLOCK_SIZE - sizeof(BlockHeader) - sizeof(FileControlBlock) - sizeof(int))/sizeof(int);
+   int max_free_space_db = (BLOCK_SIZE - sizeof(BlockHeader))/sizeof(int);
+
+	 FirstDirectoryBlock* fdb = d->dcb;
+	 FirstFileBlock to_check;
+	 int i = 0;
+	 id = -1;
+	 for(i = 0; i < max_free_space_fdb; i++){
+		 if(fdb->file_blocks[i] > 0 && Disk_Driver_readBlock(disk,&to_check,fdb->file_blocks[i]) != -1){
+			 if(strcmp(to_check.fcb.name,filename,128) == 0){
+			 	id = i;
+			 	break;
+		 	}
+		 }
+	 }
+	 int first = 1;   //questo flag mi fa capire se cercare nel db_tmp o nel fdb
+	 DirectoryBlock* db_tmp = (DirectoryBlock*) malloc(sizeof(DirectoryBlock));
+	 int next_block = fdb->header.next_block;
+	 int block_in_disk = fdb->header.block_in_disk;
+
+	 while(id == -1){ // se il file non è nel fdb continua il loop nel DirectoryBlock
+		 if(next_block != -1){
+			 	first = 0;
+				if(DiskDriver_readBlock(disk,db_tmp,next_block) == -1) return -1;
+
+				for(i = 0; i < max_free_space_db; i++){
+						if(db_tmp->file_blocks[i] > 0  && Disk_Driver_readBlock(disk,&to_check,db_tmp->file_blocks[i]) != -1){
+							if(strcmp(to_check.fcb.name,filename,128) == 0){
+								id = i;
+								break;
+							}
+						}
+					}
+					block_in_disk = next_block;
+					next_block = db_tmp->header.next_block;
+		 }else{ //ho controllato tutta la directory e non riesco a trovare il file, FILE NON esistente
+			 printf("Filename doesnt exists :(())\n");
+			 return -1;
+		 }
+	 }
+
+	 int idf = 0;
+	 int ret;
+	 if(first == 0) idf = db_tmp->file_blocks[id];
+	 else idf = fdb->file_blocks[id];
+
+	 FirstFileBlock to_remove;
+	 if(Disk_Driver_readBlock(disk,&to_remove,idf) == -1) return -1;
+	 if(to_remove.fcb.is_dir == 0){  //flag che mi fa capire se faccio riferimento a una directory o a un file, ==1 directory == 0 file
+		 FileBlock tmp;
+		 int next = to_remove.header.next_block;
+		 int block_in_disk = idf;
+		 while(next != -1){
+			 if(Disk_Driver_readBlock(disk,&tmp,next) == -1) return -1;
+			 block_in_disk = next;
+			 next = tmp.header.next_block;
+			 Disk_Driver_freeBlock(disk,block_in_disk);
+		 }
+		 Disk_Driver_readBlock(disk,idf);
+		 d->dcb = fdb;
+		 ret = 0;
+	 }else{ //il blocco è una directory, dunque applico ricorsivamente la cancellazione anche degli altri blocchi
+		 FirstDirectoryBlock fdb_to_remove;
+		 if(Disk_Driver_readBlock(disk,&fdb_to_remove,idf) == -1) return -1;
+		 if(fdb_to_remove.num_entries > 0){ //significa che la directory non è piena
+
+			 	if(SimpleFS_changeDir(d,fdb_to_remove.fcb.name) == -1) return -1;
+				int i;
+				for(i = 0; i < max_free_space_db, i++){
+					FirstFileBlock ffb;
+					if(fdb_to_remove.file_blocks[i] > 0 && Disk_Driver_readBlock(disk,&ffb,fdb_to_remove.file_blocks[i]) != -1)
+						SimpleFS_remove(d,ffb.fcb.name); //chiamo ricorsivamente la funzione sul nome del FirstFileBlock
+				}
+				int next = fdb_to_remove.header.next_block;
+				int block_in_disk = idf;
+				DirectoryBlock db_tmp;
+				while(next != -1){
+					if(DiskDriver_readBlock(disk,&db_tmp,next)) return -1;
+
+					int x;
+					for(x = 0; x < max_free_space_db; x++){
+						FirstFileBlock ffb;
+						if(Disk_Driver_readBlock(disk,&ffb,db_tmp.file_blocks[x]) == -1) return -1;
+						SimpleFS_remove(d,ffb.fcb.name);
+					}
+					block_in_disk = next;
+					next = db_tmp.header.next_block;
+					DiskDriver_freeBlock(disk,block_in_disk);
+				}
+				Disk_Driver_readBlock(disk,idf);
+				d->dcb = fdb;
+				ret = 0;
+		 }else{
+			 	DiskDriver_freeBlock(d->sfs->disk, idf);
+				d->dcb = fdb;
+				ret = 0;
+		 }
+	 }
+
+	 if(first == 0){
+		 	db_tmp->file_blocks[id] = -1;
+			fdb->num_entries-=1;
+      // update blocks
+      DiskDriver_freeBlock(d->sfs->disk, block_in_disk);
+			DiskDriver_writeBlock(d->sfs->disk, db_tmp, block_in_disk);
+      DiskDriver_freeBlock(d->sfs->disk, fdb->fcb.block_in_disk);
+			DiskDriver_writeBlock(d->sfs->disk, fdb, fdb->fcb.block_in_disk);
+			return ret;
+	 }else{
+		 	fdb->file_blocks[id] = -1;
+			fdb->num_entries-=1;
+      // update blocks
+      DiskDriver_freeBlock(d->sfs->disk, fdb->fcb.block_in_disk);
+			DiskDriver_writeBlock(d->sfs->disk, fdb, fdb->fcb.block_in_disk);
+			return ret;
+	 }
+	 return -1;
+ }
