@@ -623,7 +623,7 @@ int SimpleFS_seek(FileHandle* f, int pos){
 			for(i = 0; i < max_free_space_db; i++){
 				if(db.file_blocks[i] > 0 && (DiskDriver_readBlock(disk,&to_check,db.file_blocks[i])) != -1){
 					if(strncmp(to_check->fcb.name,dirname,128) == 0){
-						Disk_Driver_readBlock(disk,to_check,db.file_blocks[i]);
+						DiskDriver_readBlock(disk,to_check,db.file_blocks[i]);
 						d->pos_in_block = 0;
 						d->directory = fdb;
 						d->dcb = to_check;
@@ -657,7 +657,7 @@ int SimpleFS_seek(FileHandle* f, int pos){
 
 		if(fdb->num_entries > 0){	//directory non empty, controllo se esiste un'altra cartella con lo stesso nome
 			for(i = 0; i < max_free_space_fdb; i++){
-				if(fdb->file_blocks[i] > 0 && Disk_Driver_readBlock(disk,&check,fdb->file_blocks[i]) != -1){
+				if(fdb->file_blocks[i] > 0 && DiskDriver_readBlock(disk,&check,fdb->file_blocks[i]) != -1){
 					if(strncmp(check.fcb.name,dirname,128) == 0){ //dirname gia esistente
 						printf("Cannot create a new directory with dirname: Directory exists yet\n");
 						return -1;
@@ -668,14 +668,14 @@ int SimpleFS_seek(FileHandle* f, int pos){
 			int next = fdb->header.next_block;
 			DirectoryBlock db;
 			while(next != -1){
-				ret = Disk_Driver_readBlock(disk,&check,next);
+				ret = DiskDriver_readBlock(disk,&check,next);
 				if(ret == -1){
 					printf("Cannot read the block: SimpleFS_mkDir\n");
 					return -1;
 				}
 				for(i = 0; i < max_free_space_db; i++){
-					if(db.file_blocks[i] > 0 && Disk_Driver_readBlock(disk,&check,db.file_blocks[i]) != -1){
-						if(strcmp(check.fcb.name,dirname,128) == 0){
+					if(db.file_blocks[i] > 0 && DiskDriver_readBlock(disk,&check,db.file_blocks[i]) != -1){
+						if(strncmp(check.fcb.name,dirname,128) == 0){
 							printf("Cannot create a new directory: Directory exists yet\n");
 							return -1;
 						}
@@ -727,7 +727,7 @@ int SimpleFS_seek(FileHandle* f, int pos){
 			}
 		}else{ //non c'è spazio libero in fdb, ora controllo nel DirectoryBlock
 			fdb_or_max_free_space_db = 1;
-			int next = fdb->fcb.next_block;
+			int next = fdb->header.next_block;
 
 			while (next != -1 && !found) {
 				DiskDriver_readBlock(disk,&db_last,next);
@@ -752,11 +752,11 @@ int SimpleFS_seek(FileHandle* f, int pos){
 		} //qua finisce l'else
 
 		if(!found){  //spazio libero non trovato
-			DirectoryBlock* new_db = {0};
-			new_db->header.previous_block = block_number;
-			new_db->header.next_block = -1;
-			new_db->header.block_in_file = blockinFile;
-			new_db->file_blocks[0] = new_block;
+			DirectoryBlock new_db = {0};
+			new_db.header.previous_block = block_number;
+			new_db.header.next_block = -1;
+			new_db.header.block_in_file = blockinFile;
+			new_db.file_blocks[0] = new_block;
 
 			int new_dir_block = DiskDriver_getFreeBlock(disk,disk->header->first_free_block);
 			if(new_dir_block == -1){
@@ -767,7 +767,7 @@ int SimpleFS_seek(FileHandle* f, int pos){
 			ret = DiskDriver_writeBlock(disk,&new_db,new_dir_block); //scrivo il blocco su disco
 			if(ret == -1){
 				printf("Cannot write new_dir_block on the disk: SimpleFS_mkDir\n" );
-				Disk_Driver_freeBlock(disk,fdb->fcb.block_in_disk);
+				DiskDriver_freeBlock(disk,fdb->fcb.block_in_disk);
 				return -1;
 			}
 			if(fdb_or_db_save == 0){
@@ -783,7 +783,7 @@ int SimpleFS_seek(FileHandle* f, int pos){
 			fdb->num_entries++;
 			fdb->file_blocks[entry] = new_block;
 			//update free then write
-			Disk_Driver_freeBlock(disk,fdb->fcb.block_in_disk);
+			DiskDriver_freeBlock(disk,fdb->fcb.block_in_disk);
 			DiskDriver_writeBlock(disk, fdb, fdb->fcb.block_in_disk);
 		}else{
 				fdb->num_entries++;
@@ -801,7 +801,7 @@ int SimpleFS_seek(FileHandle* f, int pos){
  // returns -1 on failure 0 on success
  // if a directory, it removes recursively all contained files
  int SimpleFS_remove(DirectoryHandle* d, char* filename){
-	 if(d = NULL || filename == NULL){
+	 if(d == NULL || filename == NULL){
 		 printf("Bad parameters: SimpleFS_remove\n");
 		 return -1;
 	 }
@@ -813,10 +813,10 @@ int SimpleFS_seek(FileHandle* f, int pos){
 	 FirstDirectoryBlock* fdb = d->dcb;
 	 FirstFileBlock to_check;
 	 int i = 0;
-	 id = -1;
+	 int id = -1;
 	 for(i = 0; i < max_free_space_fdb; i++){
-		 if(fdb->file_blocks[i] > 0 && Disk_Driver_readBlock(disk,&to_check,fdb->file_blocks[i]) != -1){
-			 if(strcmp(to_check.fcb.name,filename,128) == 0){
+		 if(fdb->file_blocks[i] > 0 && DiskDriver_readBlock(disk,&to_check,fdb->file_blocks[i]) != -1){
+			 if(strncmp(to_check.fcb.name,filename,128) == 0){
 			 	id = i;
 			 	break;
 		 	}
@@ -825,7 +825,7 @@ int SimpleFS_seek(FileHandle* f, int pos){
 	 int first = 1;   //questo flag mi fa capire se cercare nel db_tmp o nel fdb
 	 DirectoryBlock* db_tmp = (DirectoryBlock*) malloc(sizeof(DirectoryBlock));
 	 int next_block = fdb->header.next_block;
-	 int block_in_disk = fdb->header.block_in_disk;
+	 int block_in_disk = fdb->header.block_in_file;
 
 	 while(id == -1){ // se il file non è nel fdb continua il loop nel DirectoryBlock
 		 if(next_block != -1){
@@ -833,8 +833,8 @@ int SimpleFS_seek(FileHandle* f, int pos){
 				if(DiskDriver_readBlock(disk,db_tmp,next_block) == -1) return -1;
 
 				for(i = 0; i < max_free_space_db; i++){
-						if(db_tmp->file_blocks[i] > 0  && Disk_Driver_readBlock(disk,&to_check,db_tmp->file_blocks[i]) != -1){
-							if(strcmp(to_check.fcb.name,filename,128) == 0){
+						if(db_tmp->file_blocks[i] > 0  && DiskDriver_readBlock(disk,&to_check,db_tmp->file_blocks[i]) != -1){
+							if(strncmp(to_check.fcb.name,filename,128) == 0){
 								id = i;
 								break;
 							}
@@ -854,30 +854,30 @@ int SimpleFS_seek(FileHandle* f, int pos){
 	 else idf = fdb->file_blocks[id];
 
 	 FirstFileBlock to_remove;
-	 if(Disk_Driver_readBlock(disk,&to_remove,idf) == -1) return -1;
+	 if(DiskDriver_readBlock(disk,&to_remove,idf) == -1) return -1;
 	 if(to_remove.fcb.is_dir == 0){  //flag che mi fa capire se faccio riferimento a una directory o a un file, ==1 directory == 0 file
 		 FileBlock tmp;
 		 int next = to_remove.header.next_block;
 		 int block_in_disk = idf;
 		 while(next != -1){
-			 if(Disk_Driver_readBlock(disk,&tmp,next) == -1) return -1;
+			 if(DiskDriver_readBlock(disk,&tmp,next) == -1) return -1;
 			 block_in_disk = next;
 			 next = tmp.header.next_block;
-			 Disk_Driver_freeBlock(disk,block_in_disk);
+			 DiskDriver_freeBlock(disk,block_in_disk);
 		 }
-		 Disk_Driver_readBlock(disk,idf);
+		 DiskDriver_freeBlock(disk,idf);
 		 d->dcb = fdb;
 		 ret = 0;
 	 }else{ //il blocco è una directory, dunque applico ricorsivamente la cancellazione anche degli altri blocchi
 		 FirstDirectoryBlock fdb_to_remove;
-		 if(Disk_Driver_readBlock(disk,&fdb_to_remove,idf) == -1) return -1;
+		 if(DiskDriver_readBlock(disk,&fdb_to_remove,idf) == -1) return -1;
 		 if(fdb_to_remove.num_entries > 0){ //significa che la directory non è piena
 
 			 	if(SimpleFS_changeDir(d,fdb_to_remove.fcb.name) == -1) return -1;
 				int i;
-				for(i = 0; i < max_free_space_db, i++){
+				for(i = 0; i < max_free_space_db; i++){
 					FirstFileBlock ffb;
-					if(fdb_to_remove.file_blocks[i] > 0 && Disk_Driver_readBlock(disk,&ffb,fdb_to_remove.file_blocks[i]) != -1)
+					if(fdb_to_remove.file_blocks[i] > 0 && DiskDriver_readBlock(disk,&ffb,fdb_to_remove.file_blocks[i]) != -1)
 						SimpleFS_remove(d,ffb.fcb.name); //chiamo ricorsivamente la funzione sul nome del FirstFileBlock
 				}
 				int next = fdb_to_remove.header.next_block;
@@ -889,14 +889,14 @@ int SimpleFS_seek(FileHandle* f, int pos){
 					int x;
 					for(x = 0; x < max_free_space_db; x++){
 						FirstFileBlock ffb;
-						if(Disk_Driver_readBlock(disk,&ffb,db_tmp.file_blocks[x]) == -1) return -1;
+						if(DiskDriver_readBlock(disk,&ffb,db_tmp.file_blocks[x]) == -1) return -1;
 						SimpleFS_remove(d,ffb.fcb.name);
 					}
 					block_in_disk = next;
 					next = db_tmp.header.next_block;
 					DiskDriver_freeBlock(disk,block_in_disk);
 				}
-				Disk_Driver_readBlock(disk,idf);
+				DiskDriver_freeBlock(disk,idf);
 				d->dcb = fdb;
 				ret = 0;
 		 }else{
