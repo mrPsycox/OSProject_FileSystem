@@ -51,4 +51,40 @@ int main(int agc, char** argv) {
   printf("\n ------------------- ENDING BITMAP_TEST ------------------------\n\n" );
 
   printf("--------------------- STARTING DISK_DRIVER TEST---------------------\n");
+
+  DiskDriver* disk_driver = (DiskDriver*)malloc(sizeof(DiskDriver));
+  const char* filename = "./disk.txt";
+  BlockHeader block_header;
+  block_header.previous_block = 2;
+  block_header.next_block = 2;
+  block_header.block_in_file = 2;
+
+  //popolerò 3 blocchi su cui testerò le operazioni di lettura/scrittura
+  printf("...Populating blocks[1]\n");
+  FileBlock* file_block1 = (FileBlock*)malloc(sizeof(FileBlock));
+  file_block1->header = block_header;
+  char data1[BLOCK_SIZE-sizeof(BlockHeader)];
+  for(i = 0; i < BLOCK_SIZE - sizeof(BlockHeader); i++)
+    data1[i] = '1';  //populo il vettore con '1'
+  data1[BLOCK_SIZE-sizeof(BlockHeader)-1] = '\0';
+  strcpy(file_block1->data,data1);
+
+  printf("...Populating blocks[2]\n");
+  FileBlock* file_block2 = (FileBlock*)malloc(sizeof(FileBlock));
+  file_block2->header = block_header;
+  char data2[BLOCK_SIZE-sizeof(BlockHeader)];
+  for(i = 0; i < BLOCK_SIZE - sizeof(BlockHeader); i++)
+    data2[i] = '1';  //populo il vettore con '1'
+  data2[BLOCK_SIZE-sizeof(BlockHeader)-1] = '\0';
+  strcpy(file_block2->data,data2);
+
+  printf("...Populating blocks[3]\n");
+  FileBlock* file_block3 = (FileBlock*)malloc(sizeof(FileBlock));
+  file_block3->header = block_header;
+  char data3[BLOCK_SIZE-sizeof(BlockHeader)];
+  for(i = 0; i < BLOCK_SIZE - sizeof(BlockHeader); i++)
+    data3[i] = '1';  //populo il vettore con '1'
+  data3[BLOCK_SIZE-sizeof(BlockHeader)-1] = '\0';
+  strcpy(file_block3->data,data3);
+
 }
