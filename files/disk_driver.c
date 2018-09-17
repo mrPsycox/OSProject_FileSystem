@@ -207,55 +207,59 @@ int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
 	// frees a block in position block_num, and alters the bitmap accordingly
 	// returns -1 if operation not possible
 int DiskDriver_freeBlock(DiskDriver* disk, int block_num){
-	if(disk == NULL || block_num < 0)
-	ERROR_HELPER(-1,"DiskDriver_freeBlock: Bad parameters in input");
+  if(disk == NULL || block_num < 0 || block_num > disk->header->bitmap_blocks){
+        printf("DiskDriver_freeBlock: bad parameters\n");
+        return -1;
+    }
+    //setting the bitmap
+    BitMap bit_map;
+    bit_map.num_bits = disk->header->bitmap_blocks;
+    bit_map.entries = disk->bitmap_data;
 
-	//setto il bitmap come ogni volta
-	BitMap bitmap;
-	bitmap.num_bits = disk->header->bitmap_blocks;
-	bitmap.entries = disk->bitmap_data;
+    // check if that block is already free
+    BitMapEntryKey entry_key = BitMap_blockToIndex(block_num);
+    if(!(bit_map.entries[entry_key.entry_num] >> entry_key.bit_num & 0x01)){ // se è =0 ritorno -1 poichè è già libero
+    		printf("This block is already free\n");
+        return -1;
+        }
 
-	//controllo come al solito se il blocco è gia libero
-	if(block_num > disk->header->num_blocks)
-	ERROR_HELPER(-1,"DiskDriver_freeBlock: the block doesn't exist");
-
-	BitMapEntryKey entry = BitMap_blockToIndex(block_num);
-	if(!(bitmap.entries[entry.entry_num] >> entry.entry_num & 1)){	//controllo se il blocco è occupato con lo shift
-		return -1;														//logico destro
-	}
-	//ora mi assegno il descrittore per cominciare le operazioni di liberazione
 	int fd = disk->fd;
-	//posiziono il cursore lseek sul file per la scrittura
-	off_t offset = lseek(fd , sizeof(DiskDriver*) + disk->header->bitmap_entries+ (BLOCK_SIZE * block_num),SEEK_SET);
-	if(offset == -1){
-		printf("DiskDriver_freeBlock: lseek cannot put the cursor on the file\n");
-		return -1;
-	}
-	//ora metto tutto a 0 il blocco;
-	char zero_buf[BLOCK_SIZE] = {0};
-	int ret,bytes_written;
-	while( bytes_written < BLOCK_SIZE){
-		ret = write(fd,zero_buf + bytes_written, BLOCK_SIZE - bytes_written);
+    // lseek on DISKHEADER+BITMAPENTRIES+MYBLOCKOFFSET
+    //Shifto il descrittore di tanti bit quanto l'offset del blocco che devo scrivere
+    //scrivo il file partendo da block num
+    off_t off = lseek(fd,sizeof(DiskHeader)+disk->header->bitmap_entries+(block_num*BLOCK_SIZE), SEEK_SET);
+    if(off == -1){
+        printf("DiskDriver_readBlock: lseek error\n");
+        return -1;
+    }
 
-		if(ret == -1 && errno == EINTR) continue;
+	// filling block with '0'
+	char zero_buffer[BLOCK_SIZE] = {0};
+    int ret, bytes_written = 0;
+    // read until the whole BLOCK_SIZE is covered
+	while(bytes_written < BLOCK_SIZE){
+        // write src on block_num pos
+		ret = write(fd, zero_buffer + bytes_written, BLOCK_SIZE - bytes_written);
 
-		bytes_written += ret;
+		if (ret == -1 && errno == EINTR) continue;
+
+		bytes_written +=ret;
 	}
 
-	int ret2;
-	ret2 = BitMap_set(&bitmap , block_num, 0);
-	if(ret2 == -1){
-		printf("Disk_Driver_freeBlock: cannot set the bitmap on block_num\n");
-		return -1;
-	}
-	//ora mi rimane da aggiornare il primo blocco libero e aumentare di 1 il contatore dei blocchi
-	if(block_num < disk->header->first_free_block || disk->header->first_free_block == -1){
-		disk->header->first_free_block = block_num;
-		disk->header->free_blocks++;
-	}
-	//operazione completata, ritorno 0 in caso di successo
-	return 0;
+	ret = BitMap_set(&bit_map, block_num, 0);//setto il blocco a 0 poichè ora è libero
+    if(ret == -1){
+        printf("DiskDriver_freeBlock: BitMap_set error\n");
+        return -1;
+    }
 
+    // aggiorno il first_free_block
+    // 1. è prima dell'attuale first_free_block?
+    // 2. l'attuale first_free_block non è settato (-1)?
+    if(block_num < disk->header->first_free_block || disk->header->first_free_block == -1)																//update first_free_block
+        disk->header->first_free_block = block_num;
+        disk->header->free_blocks += 1;
+
+    return 0;
 }
 
 // writes the data (flushing the mmaps)
