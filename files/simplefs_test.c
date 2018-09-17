@@ -122,15 +122,15 @@ int main(int agc, char** argv) {
 
 
   FileBlock* test = malloc(sizeof(FileBlock));
-  printf("Reading Block 0\n");
-  DiskDriver_readBlock(disk_driver,test,0);
-  printf("%s\n",test->data);
-  printf("Reading Block 1\n");
-  DiskDriver_readBlock(disk_driver,test,1);
-  printf("%s\n",test->data);
-  printf("Reading Block 2\n");
-  DiskDriver_readBlock(disk_driver,test,2);
-  printf("%s\n",test->data);
+      printf("Reading Block 0\n");
+      DiskDriver_readBlock(disk_driver,test,0);
+      printf("%s\n",test->data);
+      /*printf("Reading Block 1\n");
+      DiskDriver_readBlock(disk_driver,test,1);
+      printf("%s\n",test->data);
+      printf("Reading Block 2\n");
+      DiskDriver_readBlock(disk_driver,test,2);
+      printf("%s\n",test->data);*/
 
   printf("... testing the free blocks\n\n");
 
