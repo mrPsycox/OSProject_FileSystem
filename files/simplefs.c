@@ -264,57 +264,7 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 
 }
 
-// reads in the (preallocated) blocks array, the name of all files in a directory
-int SimpleFS_readDir(char** names, DirectoryHandle* d,int* flag_file){
-		if(names == NULL || d == NULL){
-			printf("Bad parameters on input\n");
-			return -1;
-		}
 
-		//mi serve sapere se il file è directory o meno per l'output a schemro
-
-		int total_blocks = 0;
-		int ret = 0;
-		FirstDirectoryBlock* fdb = d->dcb;
-		DiskDriver* disk = d->sfs->disk;
-
-		int max_free_space_fdb = (BLOCK_SIZE - sizeof(BlockHeader) - sizeof(FileControlBlock) - sizeof(int))/sizeof(int);
-		int max_free_space_db = (BLOCK_SIZE - sizeof(BlockHeader))/sizeof(int);
-
-		if(fdb->num_entries > 0){ //directory non vuota
-			int i;
-			FirstFileBlock to_check; //firstfileblock di appoggio per controllare in tutti i blocchi
-
-			int* blocks = fdb->file_blocks;
-			for(i = 0; i < max_free_space_fdb; i++){
-					if(blocks[i]>0 && DiskDriver_readBlock(disk,&to_check,blocks[i]) != -1 ){
-						names[total_blocks] = strndup(to_check.fcb.name,128);		//duplico la stringa con strndup e lo metto nell'array dei nomi
-						total_blocks++;
-					}
-			}
-
-			if(fdb->num_entries > i){
-				int next = fdb->header.next_block;
-				DirectoryBlock db;
-					while (next != -1) {
-						ret = DiskDriver_readBlock(disk,&db,next);
-						if(ret == -1){
-							printf("Cannot read the next block: SimpleFS_read\n");
-							return -1;
-						}
-						int* blocks = db.file_blocks;
-						for(i = 0; i< max_free_space_db; i++){
-							if(blocks[i]>0 && DiskDriver_readBlock(disk,&to_check,blocks[i]) != -1){
-								        names[total_blocks] = strndup(to_check.fcb.name, 128); // come sopra
-                        total_blocks++;
-							}
-						}
-						next = db.header.next_block; // va al prossimo directory block
-					}
-				}
-			}
-			return 0;
-}
 
 // opens a file in the  directory d. The file should be exisiting
 FileHandle* SimpleFS_openFile(DirectoryHandle* d, const char* filename){

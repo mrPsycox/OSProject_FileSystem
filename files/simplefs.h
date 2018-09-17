@@ -104,7 +104,7 @@ void SimpleFS_format(SimpleFS* fs);
 FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename);
 
 // reads in the (preallocated) blocks array, the name of all files in a directory
-int SimpleFS_readDir(char** names, DirectoryHandle* d,int* flag_file);
+int SimpleFS_readDir(char** names,,int* flag_file, DirectoryHandle* d);
 
 
 // opens a file in the  directory d. The file should be exisiting

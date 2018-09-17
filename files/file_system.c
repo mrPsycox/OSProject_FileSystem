@@ -1,10 +1,13 @@
 #include "simplefs.h"
 #include "disk_driver.h"
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include "bitmap.h"
 
 int main(int argc, char** argv){
     DiskDriver disk;
-    const char* filename = "./disk.txt";
+    const char* filename = "./provamia.txt";
 
     DiskDriver_init(&disk,filename,512);  //inizializzo disco
     printf("------------------- inizializzo DiskDriver -----------------\n");
@@ -26,10 +29,11 @@ int main(int argc, char** argv){
     //file necessari per le risposte utente
     int opzione;//opzione scelta dell'utente tramite scanf
     char testo[264]; //testo file
-    char nomefile[64];
+    char nomefile[128];
     int flag_file[128];
     char** files_directory = malloc(sizeof(char*)*128);
     int i = 0;
+    int ret;
     for(i = 0; i < 128; i++){
       files_directory[i] = malloc(sizeof(char*)*128);
     }
@@ -39,22 +43,51 @@ int main(int argc, char** argv){
       printf("@@@@@@@@@@@@@@@@@@ SELEZIONARE UN'OPERAZIONE @@@@@@@@@@@@@@@\n");
       printf("\nDirectory corrente: %s\n",dir_handle->dcb->fcb.name);
       printf("@@@@@\n1) Crea File\n 2) Leggi File\n 3) Scrivi File\n 4) Crea Directory\n 5)Cancella file e/o directory\n 6) Stampa directory (ls)\n 7) Cambia Directory @@@@@@\n"  );
-      scanf("%d\n",&opzione);
+      printf("\n\nInserisci un'opzione: \n\n ");
+      scanf("%d",&opzione);
 
-      switch (risposta) {
-        case 1://creo file
-          printf("\n\nInserire nome del file:    \n");
-          scanf("%s\n",nomefile);
-          fh = SimpleFS_createFile(dir_handle,nomefile);
-          if(fh == NULL){
-            printf("@@ Impossible to create file @@\n" );
-            break;
-          }
-          printf("-------- FILE CREATO --------\n");
-          free(fh);
-          break;
+      switch (opzione) {
+				  case 1://creo file
+					  printf("\n\nInserire nome del file:    \n");
+					  scanf("%s",nomefile);
+					  fh = SimpleFS_createFile(dir_handle,nomefile);
+					  if(fh == NULL){
+						printf("@@ Impossible to create file @@\n" );
+						break;
+					  }
+					  printf("-------- FILE CREATO --------\n");
+					  free(fh);
+					  break;
 
-        case 2:// Leggi FILE
+				  case 2:// Leggi FILE
+					  printf("\n\nLista dei file disponibili in lettura: \n");
+					  SimpleFS_readDir(files_directory,dir_handle,flag_file);
+					  for(i = 0; i < dir_handle->dcb->num_entries; i++){
+						  if(flag_file[i] == 0){
+							printf("FILE:\n NOME:  %s",files_directory[i]);
+						  }
+					  }
+					  printf("\n\nInserire il nome del file\n");
+					  scanf("%s",nomefile);
+
+					  fh = SimpleFS_openFile(dir_handle,nomefile);
+					  if(fh == NULL){
+						printf("\n\nImpossibile aprire il file!\n@@@@@@@@@@@@@\n");
+						break;
+					  }
+					   testo[512];
+					   ret = SimpleFS_read(fh,testo,fh->fcb->fcb.written_bytes);
+					  if(ret == -1){
+						printf("[!] IMPOSSIBILE LEGGERE FILE\n@@@@@@@@@\n");
+						break;
+					  }
+					  printf("\n\nContenuto del file:\n %s \n",testo );
+					  free(fh);
+					  
+					  
+					  break;
+
+      case 3:
           printf("\n\nLista dei file disponibili in lettura: \n");
           SimpleFS_readDir(files_directory,dir_handle,flag_file);
           for(i = 0; i < dir_handle->dcb->num_entries; i++){
@@ -63,44 +96,18 @@ int main(int argc, char** argv){
               }
           }
           printf("\n\nInserire il nome del file\n");
-          scanf("%s\n",nomefile);
+          scanf("%s",nomefile);
 
           fh = SimpleFS_openFile(dir_handle,nomefile);
           if(fh == NULL){
             printf("\n\nImpossibile aprire il file!\n@@@@@@@@@@@@@\n");
             break;
           }
-          char testo[512];
-          int ret = SimpleFS_read(fh,testo,fh->fcb->fcb.written_bytes);
-          if(ret == -1){
-            printf("[!] IMPOSSIBILE LEGGERE FILE\n@@@@@@@@@\n");
-            break;
-          }
-          printf("\n\nContenuto del file:\n %s \n",testo );
-          free(fh);
-          break;
-
-        case 3:
-          printf("\n\nLista dei file disponibili in lettura: \n");
-          SimpleFS_readDir(files_directory,dir_handle,flag_file);
-          for(i = 0; i < dir_handle->dcb->num_entries; i++){
-              if(flag_file[i] == 0){
-                printf("FILE:\n NOME:  %s",files_directory[i]);
-              }
-          }
-          printf("\n\nInserire il nome del file\n");
-          scanf("%s\n",nomefile);
-
-          fh = SimpleFS_openFile(dir_handle,nomefile);
-          if(fh == NULL){
-            printf("\n\nImpossibile aprire il file!\n@@@@@@@@@@@@@\n");
-            break;
-          }
-          char testo[512];
+           testo[512];
           printf("\n\nInserire testo da inserire nel file: \n");
-          scanf("%s\n",testo);
+          scanf("%s",testo);
 
-          int ret = SimpleFS_write(fh,testo,strlen(testo));
+           ret = SimpleFS_write(fh,testo,strlen(testo));
           if(ret == -1){
             printf("\n\n [!] Impossibile to write file!\n");
             break;
@@ -109,7 +116,7 @@ int main(int argc, char** argv){
           free(fh);
           break;
 
-        case 4:
+      case 4:
         printf("\n\nLista dei file disponibili in lettura: \n");
         SimpleFS_readDir(files_directory,dir_handle,flag_file);
         for(i = 0; i < dir_handle->dcb->num_entries; i++){
@@ -121,8 +128,8 @@ int main(int argc, char** argv){
             }
         }
         printf("\n\nInserire nome directory: \n");
-        scanf("%s\n",nomefile);
-        int ret = SimpleFS_mkDir(dir_handle,nomefile);
+        scanf("%s",nomefile);
+         ret = SimpleFS_mkDir(dir_handle,nomefile);
         if(ret == -1){ //caso negativo
           printf("\n\n[!] Impossibile creare directory\n");
           break;
@@ -136,15 +143,15 @@ int main(int argc, char** argv){
         SimpleFS_readDir(files_directory,dir_handle,flag_file);
         for(i = 0; i < dir_handle->dcb->num_entries; i++){
             if(flag_file[i] == 0){
-              printf("FILE:\n NOME:  %s",files_directory[i]);
+              printf("FILE:\n NOME:  %s\n",files_directory[i]);
             }
             else{
-              printf("DIRECTORY:\n NOME:  %s",files_directory[i]);
+              printf("DIRECTORY:\n NOME:  %s\n",files_directory[i]);
             }
           }
           printf("\n\nInserire nomefile\n");
-          scanf("%s\n",nomefile);
-          int ret = SimpleFS_remove(dir_handle,nomefile);
+          scanf("%s",nomefile);
+           ret = SimpleFS_remove(dir_handle,nomefile);
           if(ret == -1){
             printf("\n\n[!] IMPOSSIBILE RIMUOVERE FILE O DIRECTORY\n");
           }else if(ret == 0){
@@ -152,20 +159,20 @@ int main(int argc, char** argv){
           }
           break;
 
-        case 6:
+      case 6:
         printf("\n\nLista dei file disponibili in lettura: \n");
-        SimpleFS_readDir(files_directory,dir_handle,flag_file);
+        SimpleFS_readDir(files_directory,flag_file,dir_handle);
         for(i = 0; i < dir_handle->dcb->num_entries; i++){
             if(flag_file[i] == 0){
-              printf("FILE:\n NOME:  %s",files_directory[i]);
+              printf("FILE:\n NOME:  %s\n",files_directory[i]);
             }
             else{
-              printf("DIRECTORY:\n NOME:  %s",files_directory[i]);
+              printf("DIRECTORY:\n NOME:  %s\n",files_directory[i]);
             }
           }
           break;
 
-        case 7:
+      case 7:
           printf("\n\nLista dei file disponibili in lettura: \n");
           SimpleFS_readDir(files_directory,dir_handle,flag_file);
           for(i = 0; i < dir_handle->dcb->num_entries; i++){
@@ -177,14 +184,15 @@ int main(int argc, char** argv){
               }
             }
           printf("\n\nInserire directory (per tornare indietro)\n");
-          scanf("%s\n",nomefile);
-          int ret = SimpleFS_changeDir(dir_handle,nomefile);
+          scanf("%s",nomefile);
+         ret = SimpleFS_changeDir(dir_handle,nomefile);
           if(ret == -1){
             printf("\n\nImpossibile cambiare cartella\n");
           }else if(ret == 0){
           printf("\n\n!!!!!! CAMBIO DIRECTORY CON SUCCESSO EFFETTUATA CON SUCCESSO!\n");
           }
-        break;
+		  break;
       }
-    }while(opzione != 0 && opzione >= 1 && opzione <= 7);
+    }
+    while(opzione != 0);
   }
