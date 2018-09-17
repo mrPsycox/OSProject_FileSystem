@@ -113,7 +113,7 @@ int main(int agc, char** argv) {
 
   printf("--- WRITING BLOCK 2 ---\n" );
   DiskDriver_writeBlock(disk_driver,file_block3,DiskDriver_getFreeBlock(disk_driver,1));
-  
+
   printf("Free Blocks:%d\n",disk_driver->header->free_blocks);
   printf("First free block: %d\n",disk_driver->header->first_free_block);
   printf("Bitmap:%d\n",disk_driver->header->bitmap_data[0]);
@@ -121,7 +121,7 @@ int main(int agc, char** argv) {
   printf("... reading the blocks\n");
 
 
-  FileBlock* test = (FileBlock* )malloc(sizeof(FileBlock));
+  FileBlock* test = malloc(sizeof(FileBlock));
   printf("Reading Block 0\n");
   DiskDriver_readBlock(disk_driver,test,0);
   printf("%s\n",test->data);
