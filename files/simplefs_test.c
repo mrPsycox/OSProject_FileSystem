@@ -94,7 +94,7 @@ int main(int agc, char** argv) {
     printf("We have %d bitmap_entries\n",disk_driver->header->bitmap_entries);
     printf("We have %d free blocks\n",disk_driver->header->free_blocks);
     printf("we have %d first_free_block\n",disk_driver->header->first_free_block);
-  printf("we have Bitmap:%d\n\n",disk_driver->header->bitmap_data[0]);
+  printf("we have Bitmap:%d\n\n",disk_driver->bitmap_data[0]);
 
 
   printf("\n...we start to writing the blocks\n");
@@ -103,20 +103,20 @@ int main(int agc, char** argv) {
   DiskDriver_writeBlock(disk_driver,file_block1,0);
   printf("Free Blocks:%d\n",disk_driver->header->free_blocks);
   printf("First free block: %d\n",disk_driver->header->first_free_block);
-  printf("Bitmap:%d\n",disk_driver->header->bitmap_data[0]);
+  printf("Bitmap:%d\n",disk_driver->bitmap_data[0]);
 
   printf("--- WRITING BLOCK 1 ---\n" );
   DiskDriver_writeBlock(disk_driver,file_block2,DiskDriver_getFreeBlock(disk_driver,0));
   printf("Free Blocks:%d\n",disk_driver->header->free_blocks);
   printf("First free block: %d\n",disk_driver->header->first_free_block);
-  printf("Bitmap:%d\n",disk_driver->header->bitmap_data[0]);
+  printf("Bitmap:%d\n",disk_driver->bitmap_data[0]);
 
   printf("--- WRITING BLOCK 2 ---\n" );
   DiskDriver_writeBlock(disk_driver,file_block3,DiskDriver_getFreeBlock(disk_driver,1));
 
   printf("Free Blocks:%d\n",disk_driver->header->free_blocks);
   printf("First free block: %d\n",disk_driver->header->first_free_block);
-  printf("Bitmap:%d\n",disk_driver->header->bitmap_data[0]);
+  printf("Bitmap:%d\n",disk_driver->bitmap_data[0]);
 
   printf("... reading the blocks\n");
 
