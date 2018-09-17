@@ -55,9 +55,9 @@ int main(int agc, char** argv) {
   DiskDriver* disk_driver = (DiskDriver*)malloc(sizeof(DiskDriver));
   const char* filename = "./disk.txt";
   BlockHeader block_header;
-  block_header.previous_block = 2;
-  block_header.next_block = 2;
-  block_header.block_in_file = 2;
+      block_header.previous_block = 2;
+      block_header.next_block = 2;
+      block_header.block_in_file = 2;
 
   //popolerò 3 blocchi su cui testerò le operazioni di lettura/scrittura
   printf("...Populating blocks[1]\n");
@@ -113,6 +113,7 @@ int main(int agc, char** argv) {
 
   printf("--- WRITING BLOCK 2 ---\n" );
   DiskDriver_writeBlock(disk_driver,file_block3,DiskDriver_getFreeBlock(disk_driver,1));
+  
   printf("Free Blocks:%d\n",disk_driver->header->free_blocks);
   printf("First free block: %d\n",disk_driver->header->first_free_block);
   printf("Bitmap:%d\n",disk_driver->header->bitmap_data[0]);

@@ -2,11 +2,11 @@
 #include <stdio.h>
 #include "error.h"
 #include <unistd.h>
-#include "fcntl.h"
-#include "sys/mman.h"
+#include <fcntl.h>
+#include <sys/mman.h>
 #include <sys/types.h>
-#include "stdlib.h"
-#include "bitmap.h"
+#include <stdlib.h>
+
 
 
 // opens the file (creating it if necessary)
@@ -98,41 +98,48 @@ void DiskDriver_init(DiskDriver* disk, const char* filename, int num_blocks){
 // returns -1 if the block is free accrding to the bitmap
 // 0 otherwise
 int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
-    if(disk == NULL || dest == NULL || block_num < 0)
-    ERROR_HELPER(NULL,"Disk_Driver_readBlock: Bad parameters");
+  // checking if params are ok
+    if(block_num > disk->header->bitmap_blocks || block_num < 0 || dest == NULL || disk == NULL ){
+		printf("DiskDriver_readBlock: bad parameters");
+        return -1;
+	}
+    //setting the bitmap
+    BitMap bit_map;
+    bit_map.num_bits = disk->header->bitmap_blocks;
+    bit_map.entries = disk->bitmap_data;
 
-    //mi creo una bitmap con le informazioni ottenute dal DiskDriver in input
-    BitMap bitmap;
-    bitmap.num_bits = disk->header->bitmap_blocks;
-    bitmap.entries = disk->bitmap_data;
-
-    //ora controllo se il blocco che devo leggere leggere è libero
-    if(block_num > disk->header->num_blocks) return -1; //blocco che devo leggere non valido
-    BitMapEntryKey entry = BitMap_blockToIndex(block_num);
-    if(!(bitmap.entries[entry.entry_num] >> entry.bit_num & 0x01)){  //controllo se il bit è occupato (0x01 in decimale == 1), mettendo la condizione contraria so che è libero ;)
-      printf("DiskDriver_readBlock: Free block, nothing to read \n" );
-      return -1;
+    // check if that block is free
+    if(block_num >= bit_map.num_bits) return -1;   // invalid block
+    BitMapEntryKey entry_key = BitMap_blockToIndex(block_num);
+    if(!(bit_map.entries[entry_key.entry_num] >> entry_key.bit_num & 0x01)){ // controllo se il blocco è libero
+        printf("Cannot read block: is free!\n");
+        return -1;
     }
-    //controllo che il blocco sia scritto, creo un descrittore per gestire il diskdriver
+
     int fd = disk->fd;
+    // lseek on DISKHEADER+BITMAPENTRIES+MYBLOCKOFFSET
+    //Shifto il descrittore di tanti bit quanto l'offset del blocco che devo leggere
+    //Leggo il file partendo da block num
+    off_t off = lseek(fd,sizeof(DiskHeader)+disk->header->bitmap_entries+(block_num*BLOCK_SIZE), SEEK_SET);
+    if(off == -1){
+        printf("DiskDriver_readBlock: lseek error\n");
+        return -1;
+    }
 
-    //utilizzo la lseek per posizionare l'indicatore di posizione del file
-    //al preciso punto in cui è posizionato il blocco da leggere, per calcolarmi l'offset sul
-    //descrittore ho bisogno di addizionare sizeof(DiskHeader)+la bitmap_entries+(block_num*BLOCK_SIZE)
-    off_t offset = lseek(fd,sizeof(DiskHeader)+disk->header->bitmap_entries+(block_num*BLOCK_SIZE),SEEK_SET);
-    if(offset == -1){  //gestisco il caso negativo
-      ERROR_HELPER(-1,"DiskDriver_readBlock: lseek don't return a valid offset");
-    }
-    //ora faccio la lettura usando la primitiva read(), usando lo schema del buffer circolare
-    int bytes_read=0, ret;  //mi preparo due variabili per controllare quanti byte ho letto
-    while( bytes_read < BLOCK_SIZE){
-      ret = read(fd, dest + bytes_read , BLOCK_SIZE - bytes_read);
-      if(ret == -1 && errno == EINTR) continue;       //DA ANALIZZARE
-      else if(ret == -1 && errno != EINTR) return -1; //DA ANALIZZARE
-      bytes_read += ret;
-    }
-    return 0;     //ho gestito gli errori, ritorno 0 perchè la lettura è avvenuta con successo
-  }
+    int ret, bytes_reads = 0;
+    // read until the whole BLOCK_SIZE is covered
+	while(bytes_reads < BLOCK_SIZE){
+        // save bytes_read in dest location
+		ret = read(fd, dest + bytes_reads, BLOCK_SIZE - bytes_reads);
+
+		if (ret == -1 && errno == EINTR) continue;
+		else if(ret==-1 && errno !=EINTR) return -1;
+		bytes_reads +=ret;
+
+	}
+
+    return 0;
+}
 
 
   // returns the first free blockin the disk from position (checking the bitmap)
@@ -196,24 +203,24 @@ int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
       }
       return 0;
   }
-  
+
 	// frees a block in position block_num, and alters the bitmap accordingly
 	// returns -1 if operation not possible
 int DiskDriver_freeBlock(DiskDriver* disk, int block_num){
 	if(disk == NULL || block_num < 0)
 	ERROR_HELPER(-1,"DiskDriver_freeBlock: Bad parameters in input");
-	
+
 	//setto il bitmap come ogni volta
 	BitMap bitmap;
 	bitmap.num_bits = disk->header->bitmap_blocks;
 	bitmap.entries = disk->bitmap_data;
-	
+
 	//controllo come al solito se il blocco è gia libero
 	if(block_num > disk->header->num_blocks)
 	ERROR_HELPER(-1,"DiskDriver_freeBlock: the block doesn't exist");
-	
+
 	BitMapEntryKey entry = BitMap_blockToIndex(block_num);
-	if(!(bitmap.entries[entry.entry_num] >> entry.entry_num & 1)){	//controllo se il blocco è occupato con lo shift 
+	if(!(bitmap.entries[entry.entry_num] >> entry.entry_num & 1)){	//controllo se il blocco è occupato con lo shift
 		return -1;														//logico destro
 	}
 	//ora mi assegno il descrittore per cominciare le operazioni di liberazione
@@ -229,12 +236,12 @@ int DiskDriver_freeBlock(DiskDriver* disk, int block_num){
 	int ret,bytes_written;
 	while( bytes_written < BLOCK_SIZE){
 		ret = write(fd,zero_buf + bytes_written, BLOCK_SIZE - bytes_written);
-		
+
 		if(ret == -1 && errno == EINTR) continue;
-		
+
 		bytes_written += ret;
 	}
-	
+
 	int ret2;
 	ret2 = BitMap_set(&bitmap , block_num, 0);
 	if(ret2 == -1){
@@ -248,7 +255,7 @@ int DiskDriver_freeBlock(DiskDriver* disk, int block_num){
 	}
 	//operazione completata, ritorno 0 in caso di successo
 	return 0;
-	
+
 }
 
 // writes the data (flushing the mmaps)
@@ -256,7 +263,7 @@ int DiskDriver_freeBlock(DiskDriver* disk, int block_num){
 int DiskDriver_flush(DiskDriver* disk){
 	printf("Disk_Driver_Flush : flush started\n");
 	int bitmap_size = disk->header->num_blocks/8+1;
-	int ret = msync(disk->header, sizeof(DiskHeader)+bitmap_size, MS_SYNC);								
+	int ret = msync(disk->header, sizeof(DiskHeader)+bitmap_size, MS_SYNC);
 		if (ret==-1){
     	printf(" ERROR!!!! Could not sync the file to disk\n");
     }
