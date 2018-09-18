@@ -27,13 +27,13 @@ int main(int agc, char** argv) {
   BitMap_print(bitmap);
   printf("\n ----------------- BITMAP_TEST: BLOCK_TO_INDEX --------------\n" );
   int j;
-  for(j=1; j < 20; j++){
+  for(j=1; j < 15; j++){
     BitMapEntryKey entry_key = BitMap_blockToIndex(j);
     printf("block:%d entry:%d index: %d\n" ,j, entry_key.entry_num, entry_key.bit_num);
   }
   printf("\n ----------------- BITMAP_TEST: INDEX_TO_BLOCK --------------\n" );
   for(i = 0; i < 4; i++){
-    for(j = 0; j < 8; j++){
+    for(j = 0; j < 4; j++){
       printf(" entry:%d + index:%d = BLOCK:%d\n",i,j,BitMap_indexToBlock(i,j));
     }
   }
@@ -74,7 +74,7 @@ int main(int agc, char** argv) {
   file_block2->header = block_header;
   char data2[BLOCK_SIZE-sizeof(BlockHeader)];
   for(i = 0; i < BLOCK_SIZE - sizeof(BlockHeader); i++)
-    data2[i] = '1';  //populo il vettore con '1'
+    data2[i] = '2';  //populo il vettore con '1'
   data2[BLOCK_SIZE-sizeof(BlockHeader)-1] = '\0';
   strcpy(file_block2->data,data2);
 
@@ -83,11 +83,11 @@ int main(int agc, char** argv) {
   file_block3->header = block_header;
   char data3[BLOCK_SIZE-sizeof(BlockHeader)];
   for(i = 0; i < BLOCK_SIZE - sizeof(BlockHeader); i++)
-    data3[i] = '1';  //populo il vettore con '1'
+    data3[i] = '3';  //populo il vettore con '1'
   data3[BLOCK_SIZE-sizeof(BlockHeader)-1] = '\0';
   strcpy(file_block3->data,data3);
 
-  printf("Inizializing the disk with 3 blocks\n");
+  printf("--------------------- DISK_DRIVER_INIT ---------------------\n");
   DiskDriver_init(disk_driver,filename,3);
   printf("We have %d num blocks\n",disk_driver->header->num_blocks);
     printf("We have %d bitmap_blocks\n",disk_driver->header->bitmap_blocks);
@@ -96,7 +96,7 @@ int main(int agc, char** argv) {
     printf("we have %d first_free_block\n",disk_driver->header->first_free_block);
   printf("we have Bitmap:%d\n\n",disk_driver->bitmap_data[0]);
 
-
+  printf("--------------------- DISK_DRIVER WRITE_BLOCK ---------------------\n");
   printf("\n...we start to writing the blocks\n");
 
   printf("--- WRITING BLOCK 0 ---\n" );
@@ -106,18 +106,19 @@ int main(int agc, char** argv) {
   printf("Bitmap:%d\n",disk_driver->bitmap_data[0]);
 
   printf("--- WRITING BLOCK 1 ---\n" );
-  DiskDriver_writeBlock(disk_driver,file_block2,DiskDriver_getFreeBlock(disk_driver,0));
+  DiskDriver_writeBlock(disk_driver,file_block2,1);
   printf("Free Blocks:%d\n",disk_driver->header->free_blocks);
   printf("First free block: %d\n",disk_driver->header->first_free_block);
   printf("Bitmap:%d\n",disk_driver->bitmap_data[0]);
 
   printf("--- WRITING BLOCK 2 ---\n" );
-  DiskDriver_writeBlock(disk_driver,file_block3,DiskDriver_getFreeBlock(disk_driver,1));
+  DiskDriver_writeBlock(disk_driver,file_block3,2);
 
   printf("Free Blocks:%d\n",disk_driver->header->free_blocks);
   printf("First free block: %d\n",disk_driver->header->first_free_block);
   printf("Bitmap:%d\n",disk_driver->bitmap_data[0]);
-
+	
+   printf("--------------------- DISK_DRIVER READ_BLOCK ---------------------\n");
   printf("... reading the blocks\n");
 
 
@@ -125,18 +126,21 @@ int main(int agc, char** argv) {
       printf("Reading Block 0\n");
       DiskDriver_readBlock(disk_driver,test,0);
       printf("%s\n",test->data);
-      /*printf("Reading Block 1\n");
+      printf("Reading Block 1\n");
       DiskDriver_readBlock(disk_driver,test,1);
       printf("%s\n",test->data);
       printf("Reading Block 2\n");
       DiskDriver_readBlock(disk_driver,test,2);
-      printf("%s\n",test->data);*/
-
-  printf("... testing the free blocks\n\n");
-
-
+      printf("%s\n",test->data);
+	
+  printf("--------------------- DISK_DRIVER: FREE_BLOCK && GET_FREE_BLOCK ---------------------\n");
+  printf("\n... testing the free blocks\n\n");
+	
+  printf("trying to obtain a new free block: EXPECTED[Bitmap_Get: No more free blocks!]:  ");
+  DiskDriver_getFreeBlock(disk_driver,0);
   DiskDriver_freeBlock(disk_driver,0);
   printf("set free the 0 block\n");
+  printf("trying to obtain a new free block: EXPECTED[0]:[%d]    \n",DiskDriver_getFreeBlock(disk_driver,0));
   DiskDriver_readBlock(disk_driver,test,0);
   printf("free blocks:%d\n",disk_driver->header->free_blocks);
   printf("first free block: %d \n",disk_driver->header->first_free_block);
