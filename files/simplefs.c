@@ -265,11 +265,13 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 }
 
 // reads in the (preallocated) blocks array, the name of all files in a directory
-int SimpleFS_readDir(char** names, DirectoryHandle* d){
+int SimpleFS_readDir(char** names, DirectoryHandle* d,int* flag_file){
 		if(names == NULL || d == NULL){
 			printf("Bad parameters on input\n");
 			return -1;
 		}
+
+		//mi serve sapere se il file è directory o meno per l'output a schemro
 
 		int total_blocks = 0;
 		int ret = 0;
