@@ -74,9 +74,82 @@ int main(int argc, char** argv){
           int ret = SimpleFS_read(fh,testo,fh->fcb->fcb.written_bytes);
           if(ret == -1){
             printf("[!] IMPOSSIBILE LEGGERE FILE\n@@@@@@@@@\n");
+            break;
           }
           printf("\n\nContenuto del file:\n %s \n",testo );
           free(fh);
+          break;
+
+        case 3:
+          printf("\n\nLista dei file disponibili in lettura: \n");
+          SimpleFS_readDir(files_directory,dir_handle,flag_file);
+          for(i = 0; i < dir_handle->dcb->num_entries; i++){
+              if(flag_file[i] == 0){
+                printf("FILE:\n NOME:  %s",files_directory[i]);
+              }
+          }
+          printf("\n\nInserire il nome del file\n");
+          scanf("%s\n",nomefile);
+
+          fh = SimpleFS_openFile(dir_handle,nomefile);
+          if(fh == NULL){
+            printf("\n\nImpossibile aprire il file!\n@@@@@@@@@@@@@\n");
+            break;
+          }
+          char testo[512];
+          printf("\n\nInserire testo da inserire nel file: \n");
+          scanf("%s\n",testo);
+
+          int ret = SimpleFS_write(fh,testo,strlen(testo));
+          if(ret == -1){
+            printf("\n\n [!] Impossibile to write file!\n");
+            break;
+          }
+          printf("\n\n!!!! SCRITTURA FILE ESEGUITA CON SUCCESSO!\n");
+          free(fh);
+          break;
+
+        case 4:
+        printf("\n\nLista dei file disponibili in lettura: \n");
+        SimpleFS_readDir(files_directory,dir_handle,flag_file);
+        for(i = 0; i < dir_handle->dcb->num_entries; i++){
+            if(flag_file[i] == 0){
+              printf("FILE:\n NOME:  %s",files_directory[i]);
+            }
+            else{
+              printf("DIRECTORY:\n NOME:  %s",files_directory[i]);
+            }
+        }
+        printf("\n\nInserire nome directory: \n");
+        scanf("%s\n",nomefile);
+        int ret = SimpleFS_mkDir(dir_handle,nomefile);
+        if(ret == -1){ //caso negativo
+          printf("\n\n[!] Impossibile creare directory\n");
+          break;
+        }else if (ret == 0) { //caso positivo
+          printf("\n\n!!!! DIRECTORY CREATA CON SUCCESSO!\n");
+        }
+        break;
+
+      case 5:
+        printf("\n\nLista dei file disponibili in lettura: \n");
+        SimpleFS_readDir(files_directory,dir_handle,flag_file);
+        for(i = 0; i < dir_handle->dcb->num_entries; i++){
+            if(flag_file[i] == 0){
+              printf("FILE:\n NOME:  %s",files_directory[i]);
+            }
+            else{
+              printf("DIRECTORY:\n NOME:  %s",files_directory[i]);
+            }
+          }
+          printf("\n\nInserire nomefile\n");
+          scanf("%s\n",nomefile);
+          int ret = SimpleFS_remove(dir_handle,nomefile);
+          if(ret == -1){
+            printf("\n\n[!] IMPOSSIBILE RIMUOVERE FILE O DIRECTORY\n");
+          }else if(ret == 0){
+            printf("\n\n!!!!!! RIMOZIONE EFFETTUATA CON SUCCESSO!\n");
+          }
           break;
       }
     }
