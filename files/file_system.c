@@ -7,24 +7,24 @@
 
 int main(int argc, char** argv){
     DiskDriver disk;
-    const char* filename = "./animamia.txt";
+    const char* filename = "./disk.txt";
 	printf("stoqui");
-    DiskDriver_init(&disk,filename,512);  //inizializzo disco
+    
     printf("------------------- inizializzo DiskDriver -----------------\n");
+    DiskDriver_init(&disk,filename,512);  //inizializzo disco
 
     SimpleFS fs;
 
     printf("------------------- inizializzo SimpleFS -----------------\n");
     DirectoryHandle* dir_handle = SimpleFS_init(&fs,&disk);
+    printf("\nsono qui");
+    
     if(dir_handle == NULL){
-		printf("\nsituazione critica\n");
-	}
-    /*if(dir_handle == NULL){
       printf("------------------- formatto file system -----------------\n");
       DiskDriver_init(&disk,filename,512);
       SimpleFS_format(&fs);
       dir_handle = SimpleFS_init(&fs,&disk);
-    }*/
+    }
 
     DirectoryHandle* root_dir_handle = dir_handle;  //creo la root directory con le strutture dati necessarie
     FileHandle* fh;

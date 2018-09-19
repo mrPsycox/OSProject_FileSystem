@@ -10,17 +10,19 @@
 // initializes a file system on an already made disk
 // returns a handle to the top level directory stored in the first block
 DirectoryHandle* SimpleFS_init(SimpleFS* fs, DiskDriver* disk){
-
+	
     //DirectoryHandle* dir_handle = malloc(sizeof(DirectoryHandle));
     fs->disk = disk;
 
-    FirstDirectoryBlock * fdb = malloc(sizeof(FirstDirectoryBlock));
+    FirstDirectoryBlock* fdb = malloc(sizeof(FirstDirectoryBlock));
+    
     int ret = DiskDriver_readBlock(disk,fdb,0); // reading first block
+    
     if(ret == -1){ // no block
         free(fdb);
         return NULL;
     }
-    printf("\nLettura blocco ok\n");
+    
 
     DirectoryHandle* dir_handle = (DirectoryHandle*)malloc(sizeof(DirectoryHandle));
     dir_handle->sfs = fs;

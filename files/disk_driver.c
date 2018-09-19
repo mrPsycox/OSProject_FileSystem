@@ -37,7 +37,7 @@ void DiskDriver_init(DiskDriver* disk, const char* filename, int num_blocks){
         //metto l'header appena creato nell'header che mi passa la funzione
         disk->header = disk_header;
         disk->bitmap_data = (char*)disk_header + sizeof(DiskHeader);
-				//printf("E Free blocks:%d\n", disk->header->free_blocks);
+				printf("E Free blocks:%d\n", disk->header->free_blocks);
 	      //printf("E First free block:%d\n", disk->header->first_free_block);
         //printf("E Bitmap:%d\n\n", disk->bitmap_data[0]);
     }else{
@@ -86,6 +86,7 @@ void DiskDriver_init(DiskDriver* disk, const char* filename, int num_blocks){
 // returns -1 if the block is free according to the bitmap
 // 0 otherwise
 int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
+	printf("\nEntrato in readblock\n");
     // checking if params are ok
     if(block_num > disk->header->bitmap_blocks || block_num < 0 || dest == NULL || disk == NULL ){
 		printf("DiskDriver_readBlock: bad parameters");
@@ -101,6 +102,7 @@ int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
       printf("\n\nCANT READ A FREE BLOCK :()\n");																	//check it the block is free
         return -1;
     }
+    printf("\nLettura bitmap ok\n");
 
     int fd = disk->fd;
     // lseek on DISKHEADER+BITMAPENTRIES+MYBLOCKOFFSET
@@ -111,15 +113,18 @@ int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
         printf("DiskDriver_readBlock: lseek error\n");
         return -1;
     }
+    printf("\nLseek eseguita con successo\n");
 
     int ret, bytes_reads = 0;
     // read until the whole BLOCK_SIZE is covered
 	while(bytes_reads < BLOCK_SIZE){
+		printf("\nentrato nel loop\n");
         // save bytes_read in dest location
 		ret = read(fd, dest + bytes_reads, BLOCK_SIZE - bytes_reads);
 
 		if (ret == -1 && errno == EINTR) continue;
-		else if(ret==-1 && errno !=EINTR) return -1;
+		if(ret == 0) break;
+		
 		bytes_reads +=ret;
 
 	}
