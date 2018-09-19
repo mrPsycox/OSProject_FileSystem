@@ -27,14 +27,11 @@ BitMapEntryKey BitMap_blockToIndex(int num){
   int BitMap_get(BitMap* bmap, int start, int status){
       if(start > bmap->num_bits) return -1;  //ovviamente, se la partenza è maggiore del numero dei bit, è un po inutile il tutto
 
-      int h = 0;
-      int k = 0;
 
-      for(h = start; h < bmap->num_bits; h++){
-        BitMapEntryKey new_map = BitMap_blockToIndex(start);          //mi creo la bitmap entry ker partendo dalla posizione start+i
-        if(BitMap_getBit(bmap,start) & 0x01 == status) //faccio shift logico destro mettendo la nuova entry, a condizione che lo status sia disponibile
-            return BitMap_indexToBlock(new_map.entry_num,new_map.bit_num);
-        start++;                                            //incremento il la posizione start da cui partire
+
+      while (start < bmap->num_bits) {
+          if(BitMap_getBit(bmap, start) == status) return start;
+          start++;
       }
       printf("Bitmap_Get: No more free blocks!\n");
       return -1;
