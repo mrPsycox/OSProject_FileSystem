@@ -264,7 +264,59 @@ FileHandle* SimpleFS_createFile(DirectoryHandle* d, const char* filename){
 
 }
 
+// reads in the (preallocated) blocks array, the name of all files in a directory
+int SimpleFS_readDir(char** names,int* is_file, DirectoryHandle* d){
+	if (d == NULL || names == NULL){
+		printf("Impossible to read directory: Bad Parameters\n");
+        return -1;
+    }
 
+	int ret = 0, num_tot = 0;
+	FirstDirectoryBlock *fdb = d->dcb;
+	DiskDriver* disk = d->sfs->disk;
+
+    int max_free_space_fdb = (BLOCK_SIZE - sizeof(BlockHeader) - sizeof(FileControlBlock) - sizeof(int))/sizeof(int);
+    int max_free_space_db = (BLOCK_SIZE - sizeof(BlockHeader))/sizeof(int);
+
+	if (fdb->num_entries > 0){	// directory is not empty
+		int i;
+		FirstFileBlock to_check; // used as a reference to save the current file that is currently checked
+
+		int* blocks = fdb->file_blocks;
+		for (i = 0; i < max_free_space_fdb; i++){	// checks every block entry in the directory FirstDirectoryBlock
+			if (blocks[i]> 0 && DiskDriver_readBlock(disk, &to_check, blocks[i]) != -1){ // blocks[i] > 0 => to_check not empty, read to check the name
+				names[num_tot] = strndup(to_check.fcb.name, 128); // save the name in the buffer
+                is_file[i] = to_check.fcb.is_dir;
+                num_tot++;
+			}
+		}
+
+		if (fdb->num_entries > i){	// check if more entries in other blokcs of the directory
+			int next = fdb->header.next_block;
+			DirectoryBlock db;
+
+			while (next != -1){	 // check all blocks (next == -1 => no more block to be checked)
+				ret = DiskDriver_readBlock(disk, &db, next); // read new directory block
+				if (ret == -1){
+					printf("Impossible to read all directory, problems on next block\n");
+					return -1;
+				}
+
+				int* blocks = db.file_blocks;
+				for (i = 0; i < max_free_space_db; i++){	 // checks every block indicator in the directory FirstDirectoryBlock
+					if (blocks[i]> 0 && DiskDriver_readBlock(disk, &to_check, blocks[i]) != -1){ // blocks[i] > 0 => to_check not empty, read to check the name
+						names[num_tot] = strndup(to_check.fcb.name, 128); // save the name in the buffer
+                        is_file[i] = to_check.fcb.is_dir;
+                        num_tot++;
+					}
+				}
+
+				next = db.header.next_block; // goto next directoryBlock
+			}
+		}
+	}
+	return 0;
+}
 
 // opens a file in the  directory d. The file should be exisiting
 FileHandle* SimpleFS_openFile(DirectoryHandle* d, const char* filename){
