@@ -20,6 +20,7 @@ DirectoryHandle* SimpleFS_init(SimpleFS* fs, DiskDriver* disk){
         free(fdb);
         return NULL;
     }
+    printf("\nLettura blocco ok\n");
 
     DirectoryHandle* dir_handle = (DirectoryHandle*)malloc(sizeof(DirectoryHandle));
     dir_handle->sfs = fs;
@@ -28,6 +29,7 @@ DirectoryHandle* SimpleFS_init(SimpleFS* fs, DiskDriver* disk){
     dir_handle->pos_in_block = 0;
 
     return dir_handle;
+    printf("\nsimplefs_Init end\n\n");
 }
 
 
@@ -64,6 +66,7 @@ void SimpleFS_format(SimpleFS* fs){
 	ret = DiskDriver_writeBlock(fs->disk, &rootDir, 0);		//write root directory on block 0
 	if (ret == -1)
 		printf("Impossible to format: problem on writeBlock\n");
+	printf("format end\n\n");
 }
 
 // creates an empty file in the directory d

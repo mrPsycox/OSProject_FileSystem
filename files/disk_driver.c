@@ -79,14 +79,14 @@ void DiskDriver_init(DiskDriver* disk, const char* filename, int num_blocks){
     }
 
     disk->fd = fd;
-    //printf("Init end\n");
+    printf("\nInit end\n");
 }
 
 // reads the block in position block_num
-// returns -1 if the block is free accrding to the bitmap
+// returns -1 if the block is free according to the bitmap
 // 0 otherwise
 int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
-  // checking if params are ok
+    // checking if params are ok
     if(block_num > disk->header->bitmap_blocks || block_num < 0 || dest == NULL || disk == NULL ){
 		printf("DiskDriver_readBlock: bad parameters");
         return -1;
@@ -132,8 +132,10 @@ int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
 
   // returns the first free blockin the disk from position (checking the bitmap)
   int DiskDriver_getFreeBlock(DiskDriver* disk, int start){
-    if(disk == NULL || start < 0 || start > disk->header->bitmap_blocks)
-    ERROR_HELPER(-1,"DiskDriver_getFreeBlock: Bad parameters in input");
+    if(disk == NULL || start < 0 || start > disk->header->bitmap_blocks){
+		 printf("DiskDriver_getFreeBlock: bad parameters\n");
+         return -1;
+    }
 
 
 

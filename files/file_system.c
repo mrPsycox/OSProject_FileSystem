@@ -7,8 +7,8 @@
 
 int main(int argc, char** argv){
     DiskDriver disk;
-    const char* filename = "./provamia.txt";
-
+    const char* filename = "./animamia.txt";
+	printf("stoqui");
     DiskDriver_init(&disk,filename,512);  //inizializzo disco
     printf("------------------- inizializzo DiskDriver -----------------\n");
 
@@ -17,11 +17,14 @@ int main(int argc, char** argv){
     printf("------------------- inizializzo SimpleFS -----------------\n");
     DirectoryHandle* dir_handle = SimpleFS_init(&fs,&disk);
     if(dir_handle == NULL){
+		printf("\nsituazione critica\n");
+	}
+    /*if(dir_handle == NULL){
       printf("------------------- formatto file system -----------------\n");
       DiskDriver_init(&disk,filename,512);
       SimpleFS_format(&fs);
       dir_handle = SimpleFS_init(&fs,&disk);
-    }
+    }*/
 
     DirectoryHandle* root_dir_handle = dir_handle;  //creo la root directory con le strutture dati necessarie
     FileHandle* fh;
@@ -61,7 +64,7 @@ int main(int argc, char** argv){
 
 				  case 2:// Leggi FILE
 					  printf("\n\nLista dei file disponibili in lettura: \n");
-					  SimpleFS_readDir(files_directory,dir_handle,flag_file);
+					  SimpleFS_readDir(files_directory,flag_file,dir_handle);
 					  for(i = 0; i < dir_handle->dcb->num_entries; i++){
 						  if(flag_file[i] == 0){
 							printf("FILE:\n NOME:  %s",files_directory[i]);
@@ -89,7 +92,7 @@ int main(int argc, char** argv){
 
       case 3:
           printf("\n\nLista dei file disponibili in lettura: \n");
-          SimpleFS_readDir(files_directory,dir_handle,flag_file);
+          SimpleFS_readDir(files_directory,flag_file,dir_handle);
           for(i = 0; i < dir_handle->dcb->num_entries; i++){
               if(flag_file[i] == 0){
                 printf("FILE:\n NOME:  %s",files_directory[i]);
@@ -118,7 +121,7 @@ int main(int argc, char** argv){
 
       case 4:
         printf("\n\nLista dei file disponibili in lettura: \n");
-        SimpleFS_readDir(files_directory,dir_handle,flag_file);
+        SimpleFS_readDir(files_directory,flag_file,dir_handle);
         for(i = 0; i < dir_handle->dcb->num_entries; i++){
             if(flag_file[i] == 0){
               printf("FILE:\n NOME:  %s",files_directory[i]);
@@ -140,7 +143,7 @@ int main(int argc, char** argv){
 
       case 5:
         printf("\n\nLista dei file disponibili in lettura: \n");
-        SimpleFS_readDir(files_directory,dir_handle,flag_file);
+        SimpleFS_readDir(files_directory,flag_file,dir_handle);
         for(i = 0; i < dir_handle->dcb->num_entries; i++){
             if(flag_file[i] == 0){
               printf("FILE:\n NOME:  %s\n",files_directory[i]);
@@ -174,7 +177,7 @@ int main(int argc, char** argv){
 
       case 7:
           printf("\n\nLista dei file disponibili in lettura: \n");
-          SimpleFS_readDir(files_directory,dir_handle,flag_file);
+          SimpleFS_readDir(files_directory,flag_file,dir_handle);
           for(i = 0; i < dir_handle->dcb->num_entries; i++){
               if(flag_file[i] == 0){
                 printf("FILE:\n NOME:  %s",files_directory[i]);
