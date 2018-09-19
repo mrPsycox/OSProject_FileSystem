@@ -151,6 +151,40 @@ int main(int argc, char** argv){
             printf("\n\n!!!!!! RIMOZIONE EFFETTUATA CON SUCCESSO!\n");
           }
           break;
+
+        case 6:
+        printf("\n\nLista dei file disponibili in lettura: \n");
+        SimpleFS_readDir(files_directory,dir_handle,flag_file);
+        for(i = 0; i < dir_handle->dcb->num_entries; i++){
+            if(flag_file[i] == 0){
+              printf("FILE:\n NOME:  %s",files_directory[i]);
+            }
+            else{
+              printf("DIRECTORY:\n NOME:  %s",files_directory[i]);
+            }
+          }
+          break;
+
+        case 7:
+          printf("\n\nLista dei file disponibili in lettura: \n");
+          SimpleFS_readDir(files_directory,dir_handle,flag_file);
+          for(i = 0; i < dir_handle->dcb->num_entries; i++){
+              if(flag_file[i] == 0){
+                printf("FILE:\n NOME:  %s",files_directory[i]);
+              }
+              else{
+                printf("DIRECTORY:\n NOME:  %s",files_directory[i]);
+              }
+            }
+          printf("\n\nInserire directory (per tornare indietro)\n");
+          scanf("%s\n",nomefile);
+          int ret = SimpleFS_changeDir(dir_handle,nomefile);
+          if(ret == -1){
+            printf("\n\nImpossibile cambiare cartella\n");
+          }else if(ret == 0){
+          printf("\n\n!!!!!! CAMBIO DIRECTORY CON SUCCESSO EFFETTUATA CON SUCCESSO!\n");
+          }
+        break;
       }
-    }
-}
+    }while(opzione != 0 && opzione >= 1 && opzione <= 7);
+  }
