@@ -97,10 +97,8 @@ int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
     bit_map.entries = disk->bitmap_data;
 
     // check if that block is free
-    if(block_num >= bit_map.num_bits) return -1;   // invalid block
-    BitMapEntryKey entry_key = BitMap_blockToIndex(block_num);
-    if(!(bit_map.entries[entry_key.entry_num] >> entry_key.bit_num & 0x01)){ // controllo se il blocco è libero
-        printf("Cannot read block: is free!\n");
+    if(!BitMap_getBit(&bit_map, block_num)){
+      printf("\n\nCANT READ A FREE BLOCK :()\n");																	//check it the block is free
         return -1;
     }
 

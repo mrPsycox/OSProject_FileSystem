@@ -64,3 +64,10 @@ BitMapEntryKey BitMap_blockToIndex(int num){
       printf("Entry num ---> %d | bit_num ---> %d | status ---> %d\n",  entry.entry_num,  entry.bit_num,  bitmap->entries[entry.entry_num] >> entry.bit_num & 1);
     }
   }
+
+  int BitMap_getBit(BitMap* bmap, int pos){
+    if(pos >= bmap->num_bits) return -1;                                //error, start not in range of bitmap blocks
+
+    BitMapEntryKey map = BitMap_blockToIndex(pos);                      //convert to easy use shift
+    return bmap->entries[map.entry_num] >> map.bit_num & 0x01;
+}
