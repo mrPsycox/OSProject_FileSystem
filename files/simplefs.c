@@ -10,29 +10,26 @@
 // initializes a file system on an already made disk
 // returns a handle to the top level directory stored in the first block
 DirectoryHandle* SimpleFS_init(SimpleFS* fs, DiskDriver* disk){
-	if(fs == NULL || disk == NULL){
-		ERROR_HELPER(-1,"SimpleFS_init: Bad parameters on input.\n");
-	}
-	//assegno al file system il disco
-	fs->disk = disk;
 
-	//creo la prima struct da assegnare poi al directory handle di ritorno
-	FirstDirectoryBlock* fdb = malloc(sizeof(FirstDirectoryBlock));
-	int ret;
-	ret = DiskDriver_readBlock(disk, fdb, 0); //leggo il primo blocco
-	if(ret == -1){  //ciò sta a signicare che il blocco è libero, perciò non ho piu bisogno del fdb
-		free(fdb);
-		return NULL;
-	}
-	DirectoryHandle* dh = malloc(sizeof(DirectoryHandle*));
-	dh->sfs = fs;
-	dh->dcb = fdb;
-	dh->directory = NULL;
-	dh->pos_in_block = 0;
+    //DirectoryHandle* dir_handle = malloc(sizeof(DirectoryHandle));
+    fs->disk = disk;
 
-	return dh;
+    FirstDirectoryBlock * fdb = malloc(sizeof(FirstDirectoryBlock));
+    int ret = DiskDriver_readBlock(disk,fdb,0); // reading first block
+    if(ret == -1){ // no block
+        free(fdb);
+        return NULL;
+    }
 
+    DirectoryHandle* dir_handle = (DirectoryHandle*)malloc(sizeof(DirectoryHandle));
+    dir_handle->sfs = fs;
+    dir_handle->dcb = fdb;
+    dir_handle->directory = NULL;
+    dir_handle->pos_in_block = 0;
+
+    return dir_handle;
 }
+
 
 // creates the inital structures, the top level directory
 // has name "/" and its control block is in the first position
@@ -40,38 +37,33 @@ DirectoryHandle* SimpleFS_init(SimpleFS* fs, DiskDriver* disk){
 // the current_directory_block is cached in the SimpleFS struct
 // and set to the top level directory
 void SimpleFS_format(SimpleFS* fs){
-	//controllo l'input
-	if(fs  == NULL){
-		printf("SimpleFS_format: Bad Parameters\n");
+	if (fs == NULL){
+		printf("Impossible to format: Wrong Parameters\n");
 		return;
-	}
+    }
 
-	FirstDirectoryBlock fdb = {0};  //questo parametro viene settato a 0 cosi che pulisca tutti i dati vecchi su quella porzione di disco
-	//comincio a popolare la struct di fdb che sarebbe LA ROOT DIRECTORY
-	fdb.header.previous_block = -1;  //
-	fdb.header.block_in_file = 0;    // VALORI DI DEFAULT
-	fdb.header.next_block = -1; 	//
+	int ret = 0;
 
-	fdb.fcb.directory_block = -1;
-	fdb.fcb.is_dir = 1;				//significa che è una directory
-	fdb.fcb.block_in_disk = 0;
-	strcpy(fdb.fcb.name,"/");		//copia la stringa "/" nel nome della cartella di root
+	FirstDirectoryBlock rootDir = {0}; //create the block for root directory, set to 0 to clean old data
+    //populate header
+	rootDir.header.block_in_file = 0;
+	rootDir.header.previous_block = -1;
+	rootDir.header.next_block = -1;
 
-	//ora comincio a prepapare l'header del disco associato al file system
+    //populate fcb
+	rootDir.fcb.directory_block = -1; //root has no parents => -1
+	rootDir.fcb.block_in_disk = 0;
+	rootDir.fcb.is_dir = 1; // is directory: YES
+	strcpy(rootDir.fcb.name, "/"); //name = "/"
+
+	fs->disk->header->free_blocks = fs->disk->header->num_blocks;  //all blocks are free
 	fs->disk->header->first_free_block = 0;
-	fs->disk->header->free_blocks = fs->disk->header->num_blocks;			//logicamente i blocchi liberi devono essere uguali ai blocchi presenti
+	int bitmap_size = fs->disk->header->bitmap_entries; //num_blocks entries
+	memset(fs->disk->bitmap_data,'\0', bitmap_size); //put 0 in every bytes for bitmap_size length
 
-	int size_bitmap = fs->disk->header->bitmap_entries;
-	//orainizializzo il mettendo a '\0' tutti quanti i dati del disco,
-	memset(fs->disk->bitmap_data,'\0',size_bitmap);		//metto a '\0' == equivalente di char == 0
-
-	int ret;
-	ret = DiskDriver_writeBlock(fs->disk, &fdb , 0); 	//metto al blocco 0 la root directory!
-	if(ret == -1){
-		printf("SimpleFS_format: Cannot format! Cannot write on the block!\n");
-		return;
-	}
-	//la funzione non ritorna nulla perchè è void, operazione di formattazione completata
+	ret = DiskDriver_writeBlock(fs->disk, &rootDir, 0);		//write root directory on block 0
+	if (ret == -1)
+		printf("Impossible to format: problem on writeBlock\n");
 }
 
 // creates an empty file in the directory d
