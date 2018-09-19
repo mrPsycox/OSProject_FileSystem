@@ -29,9 +29,10 @@ DirectoryHandle* SimpleFS_init(SimpleFS* fs, DiskDriver* disk){
     dir_handle->dcb = fdb;
     dir_handle->directory = NULL;
     dir_handle->pos_in_block = 0;
-
+	
+	printf("\nsimplefs_Init end\n\n");
     return dir_handle;
-    printf("\nsimplefs_Init end\n\n");
+    
 }
 
 
