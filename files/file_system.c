@@ -7,7 +7,7 @@
 
 int main(int argc, char** argv){
     DiskDriver disk;
-    const char* filename = "./disk_driver.txt";
+    const char* filename = "./discomio.txt";
 	printf("stoqui");
     
     printf("------------------- inizializzo DiskDriver -----------------\n");
@@ -69,17 +69,22 @@ int main(int argc, char** argv){
 					  SimpleFS_readDir(files_directory,flag_file,dir_handle);
 					  for(i = 0; i < dir_handle->dcb->num_entries; i++){
 						  if(flag_file[i] == 0){
-							printf("FILE:\n NOME:  %s",files_directory[i]);
-						  }
+							printf("FILE:\n  %s\n",files_directory[i]);
+						  }else{ //caso trovo una directory
+							  printf("DIRECTORY:\n NOME:  %s\n",files_directory[i]);
+						 }
 					  }
 					  printf("\n\nInserire il nome del file\n");
 					  scanf("%s",nomefile);
+					  printf("\n\nsono qui prima della openfile\n");
 
 					  fh = SimpleFS_openFile(dir_handle,nomefile);
+					  printf("superata la open file!");
 					  if(fh == NULL){
 						printf("\n\nImpossibile aprire il file!\n@@@@@@@@@@@@@\n");
 						break;
 					  }
+					  
 					   testo[512];
 					   ret = SimpleFS_read(fh,testo,fh->fcb->fcb.written_bytes);
 					  if(ret == -1){
@@ -163,7 +168,7 @@ int main(int argc, char** argv){
             if(flag_file[i] == 0){
               printf("FILE:\n NOME:  %s\n",files_directory[i]);
             }
-            else if(flag_file[i] == 1){
+            else{
               printf("DIRECTORY:\n NOME:  %s\n",files_directory[i]);
             }
           }

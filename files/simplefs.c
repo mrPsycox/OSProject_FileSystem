@@ -318,6 +318,7 @@ int SimpleFS_readDir(char** names,int* is_file, DirectoryHandle* d){
 
 // opens a file in the  directory d. The file should be exisiting
 FileHandle* SimpleFS_openFile(DirectoryHandle* d, const char* filename){
+		printf("\n\nentrato nella open file");
 		if(d == NULL || filename == NULL){
 			printf("Bad parameters on input\n");
 			return NULL;
@@ -351,7 +352,7 @@ FileHandle* SimpleFS_openFile(DirectoryHandle* d, const char* filename){
 			//ora controllo l'esistenza del file nel directory block
 			int next = fdb->header.next_block;
 			DirectoryBlock db;
-			while(next!= -1 && found != 1){
+			while(next!= -1 && !found){
 				ret = DiskDriver_readBlock(disk,&db,next);
 				if(ret == -1){
 						printf("Cannot read the next block: SimpleFS_openFile\n");
