@@ -100,7 +100,7 @@ int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
 
     // check if that block is free
     if(!BitMap_getBit(&bit_map, block_num)){
-      printf("\n\nCANT READ A FREE BLOCK :()\n");																	//check it the block is free
+      //printf("\nCANT READ A FREE BLOCK :()\n");																	//check it the block is free
         return -1;
     }
     
@@ -151,7 +151,7 @@ int DiskDriver_readBlock(DiskDriver* disk, void* dest, int block_num){
 
     //utilizzo la BitMap_get per prendermi il primo blocco con status 0
     int free_block =  BitMap_get(&bitmap,start,0);     //dato che la bitmap get prende un puntatore a bitmap,
-    printf("%d\n",free_block); 
+    //printf("%d\n",free_block); 
     return free_block;                                       //gli passo il suo indirizzo logico
   }
 

@@ -28,11 +28,11 @@ BitMapEntryKey BitMap_blockToIndex(int num){
       if(start > bmap->num_bits) return -1;  //ovviamente, se la partenza è maggiore del numero dei bit, è un po inutile il tutto
 
 
-	  printf("start: %d",start);
+	  //printf("start: %d",start);
       while (start < bmap->num_bits) {
-		  printf("\nrisultato di getBit == status: %d",BitMap_getBit(bmap, start) == status);
+		  //printf("\nrisultato di getBit == status: %d",BitMap_getBit(bmap, start) == status);
           if(BitMap_getBit(bmap, start) == status){ 
-			  printf("start: %d",start);
+			  //printf("start: %d",start);
 			  return start; }
           start++;
       }

@@ -7,7 +7,7 @@
 
 int main(int argc, char** argv){
     DiskDriver disk;
-    const char* filename = "./discomio.txt";
+    const char* filename = "./prova.txt";
 	printf("stoqui");
     
     printf("------------------- inizializzo DiskDriver -----------------\n");
