@@ -7,7 +7,7 @@
 
 int main(int argc, char** argv){
     DiskDriver disk;
-    const char* filename = "./prova.txt";
+    const char* filename = "./disk_driver.txt";
 	printf("stoqui");
     
     printf("------------------- inizializzo DiskDriver -----------------\n");
@@ -178,7 +178,7 @@ int main(int argc, char** argv){
           printf("\n\nLista dei file disponibili in lettura: \n");
           SimpleFS_readDir(files_directory,flag_file,dir_handle);
           for(i = 0; i < dir_handle->dcb->num_entries; i++){
-              if(flag_file[i] != 0){
+              if(flag_file[i] == 1){
                 printf("DIRECTORY:\n NOME:  %s",files_directory[i]);
               }
               
