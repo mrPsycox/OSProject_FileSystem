@@ -7,9 +7,9 @@
 
 int main(int argc, char** argv){
     DiskDriver disk;
-    const char* filename = "./dischetto.txt";
+    const char* filename = "./disk.txt";
 	printf("stoqui");
-    
+
     printf("------------------- inizializzo DiskDriver -----------------\n");
     DiskDriver_init(&disk,filename,256);  //inizializzo disco
     printf("\nDisk_header_firstfreeblock PRIMA: %d",disk.header->first_free_block);
@@ -19,13 +19,13 @@ int main(int argc, char** argv){
     printf("------------------- inizializzo SimpleFS -----------------\n");
     DirectoryHandle* dir_handle = SimpleFS_init(&fs,&disk);
     //printf("\nDisk_header_firstfreeblock DOPO: %d",disk.header->first_free_block);
-    
+
     if(dir_handle == NULL){
       printf("------------------- formatto file system -----------------\n");
       DiskDriver_init(&disk,filename,256);
       SimpleFS_format(&fs);
       dir_handle = SimpleFS_init(&fs,&disk);
-      
+
     }
 
     DirectoryHandle* root_dir_handle = dir_handle;  //creo la root directory con le strutture dati necessarie
@@ -84,7 +84,7 @@ int main(int argc, char** argv){
 						printf("\n\nImpossibile aprire il file!\n@@@@@@@@@@@@@\n");
 						break;
 					  }
-					  
+
 					   testo[512];
 					   ret = SimpleFS_read(fh,testo,fh->fcb->fcb.written_bytes);
 					  if(ret == -1){
@@ -93,8 +93,8 @@ int main(int argc, char** argv){
 					  }
 					  printf("\n\nContenuto del file:\n %s \n",testo );
 					  free(fh);
-					  
-					  
+
+
 					  break;
 
       case 3:
@@ -128,7 +128,7 @@ int main(int argc, char** argv){
           break;
 
       case 4:
-        
+
         printf("\n\nInserire nome directory: \n");
         scanf("%s",nomefile);
          ret = SimpleFS_mkDir(dir_handle,nomefile);
@@ -181,8 +181,8 @@ int main(int argc, char** argv){
               if(flag_file[i] == 1){
                 printf("DIRECTORY:\n NOME:  %s",files_directory[i]);
               }
-              
-        
+
+
             }
           printf("\n\nInserire directory (.. per tornare indietro alla directory precedente)\n");
           scanf("%s",nomefile);

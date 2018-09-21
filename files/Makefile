@@ -3,11 +3,6 @@ LIBS=
 CC=gcc
 AR=ar
 
-
-BINS= simplefs_test
-
-OBJS = bitmap.c simplefs.c
-
 HEADERS=bitmap.h\
 	disk_driver.h\
 	simplefs.h
@@ -23,5 +18,11 @@ all:	$(BINS)
 so_game: simplefs_test.c $(OBJS)
 	$(CC) $(CCOPTS)  -o $@ $^ $(LIBS)
 
+test_functions: simplefs_test.c bitmap.c disk_driver.c simplefs.c $(HEADERS)
+								$(CC) $(CCOPTS) simplefs_test.c bitmap.c disk_driver.c simplefs.c -o test_functions
+
+fs: file_system.c bitmap.c disk_driver.c simplefs.c $(HEADERS)
+		$(CC) $(CCOPTS) file_system.c bitmap.c disk_driver.c simplefs.c -o fs
+
 clean:
-	rm -rf *.o *~  $(BINS)
+	rm -rf *.o *~  fs disk.txt
