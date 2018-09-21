@@ -740,6 +740,7 @@ int SimpleFS_seek(FileHandle* f, int pos){
 			int next = fdb->header.next_block;
 
 			while (next != -1 && !found) {
+				printf("\nsonoqui\n");
 				DiskDriver_readBlock(disk,&db_last,next);
 				if(ret == -1){
 					printf("Cannot Read the block: SimpleFS_mkDir\n");

@@ -7,12 +7,12 @@
 
 int main(int argc, char** argv){
     DiskDriver disk;
-    const char* filename = "./disk.txt";
-	printf("stoqui");
+    const char* filename = "./disko.txt";
+	
 
     printf("------------------- inizializzo DiskDriver -----------------\n");
     DiskDriver_init(&disk,filename,256);  //inizializzo disco
-    printf("\nDisk_header_firstfreeblock PRIMA: %d",disk.header->first_free_block);
+    //printf("\nDisk_header_firstfreeblock PRIMA: %d",disk.header->first_free_block);
 
     SimpleFS fs;
 
@@ -76,10 +76,10 @@ int main(int argc, char** argv){
 					  }
 					  printf("\n\nInserire il nome del file\n");
 					  scanf("%s",nomefile);
-					  printf("\n\nsono qui prima della openfile\n");
+					  //printf("\n\nsono qui prima della openfile\n");
 
 					  fh = SimpleFS_openFile(dir_handle,nomefile);
-					  printf("superata la open file!");
+					  //printf("superata la open file!");
 					  if(fh == NULL){
 						printf("\n\nImpossibile aprire il file!\n@@@@@@@@@@@@@\n");
 						break;
@@ -102,7 +102,7 @@ int main(int argc, char** argv){
           SimpleFS_readDir(files_directory,flag_file,dir_handle);
           for(i = 0; i < dir_handle->dcb->num_entries; i++){
               if(flag_file[i] == 0){
-                printf("FILE:\n NOME:  %s",files_directory[i]);
+                printf("FILE:\n   %s",files_directory[i]);
               }
           }
           printf("\n\nInserire il nome del file\n");
@@ -168,7 +168,7 @@ int main(int argc, char** argv){
             if(flag_file[i] == 0){
               printf("FILE:\n NOME:  %s\n",files_directory[i]);
             }
-            else{
+            else if(flag_file[i] ==  1){
               printf("DIRECTORY:\n NOME:  %s\n",files_directory[i]);
             }
           }
