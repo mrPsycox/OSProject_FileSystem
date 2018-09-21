@@ -24,7 +24,7 @@ void DiskDriver_init(DiskDriver* disk, const char* filename, int num_blocks){
 		int is_file=access(filename, F_OK) == 0;
 
     if(is_file){
-        //printf("File exists\n");
+        printf("\nFile exists\n");
         //file esiste gia
         fd = open(filename,O_RDWR,(mode_t)0666);
 				//alloco header e setto a 0 tutti i bit dell'header + quelli della bitmap
@@ -38,7 +38,7 @@ void DiskDriver_init(DiskDriver* disk, const char* filename, int num_blocks){
         disk->header = disk_header;
         disk->header->first_free_block = 0;
         disk->bitmap_data = (char*)disk_header + sizeof(DiskHeader);
-				printf("E Free blocks:%d\n", disk->header->free_blocks);
+				printf("Free blocks:%d\n", disk->header->free_blocks);
 	      //printf("E First free block:%d\n", disk->header->first_free_block);
         //printf("E Bitmap:%d\n\n", disk->bitmap_data[0]);
     }else{

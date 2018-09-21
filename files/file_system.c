@@ -7,11 +7,11 @@
 
 int main(int argc, char** argv){
     DiskDriver disk;
-    const char* filename = "./disk_driver.txt";
+    const char* filename = "./dischetto.txt";
 	printf("stoqui");
     
     printf("------------------- inizializzo DiskDriver -----------------\n");
-    DiskDriver_init(&disk,filename,512);  //inizializzo disco
+    DiskDriver_init(&disk,filename,256);  //inizializzo disco
     printf("\nDisk_header_firstfreeblock PRIMA: %d",disk.header->first_free_block);
 
     SimpleFS fs;
@@ -22,7 +22,7 @@ int main(int argc, char** argv){
     
     if(dir_handle == NULL){
       printf("------------------- formatto file system -----------------\n");
-      DiskDriver_init(&disk,filename,512);
+      DiskDriver_init(&disk,filename,256);
       SimpleFS_format(&fs);
       dir_handle = SimpleFS_init(&fs,&disk);
       
