@@ -53,7 +53,7 @@ int main(int agc, char** argv) {
   printf("--------------------- STARTING DISK_DRIVER TEST---------------------\n");
 
   DiskDriver* disk_driver = (DiskDriver*)malloc(sizeof(DiskDriver));
-  const char* filename = "./disk.txt";
+  const char* filename = "./disk_test.txt";
   BlockHeader block_header;
       block_header.previous_block = 2;
       block_header.next_block = 2;
